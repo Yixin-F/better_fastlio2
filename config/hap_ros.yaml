@@ -1,0 +1,44 @@
+common:
+    lid_topic:  "/livox/lidar"
+    repub_topic:  "/livox/lidar_repub"
+    imu_topic:  "/imu"
+    time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
+    
+preprocess:
+    lidar_type: 1                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
+    livox_type: 2
+    scan_line:  6
+    blind: 4
+
+camera:
+    camera_external: [ 0.000000, -1.000000, 0.000000, 0.000000,
+                       0.000000, 0.000000, -1.000000, 0.300000,
+                       1.000000, 0.000000, 0.000000, 0.000000,
+                       0.000000, 0.000000, 0.000000, 1.000000]        #相机2雷达外参
+    camera_internal: [516.235840, 0.000000, 641.125888, 0.000000,
+                      0.000000, 533.185608, 338.725370, 0.000000,
+                      0.000000, 0.000000, 1.000000, 0.000000]         #相机内参
+                      
+mapping:
+    acc_cov: 0.1
+    gyr_cov: 0.1
+    b_acc_cov: 0.0001
+    b_gyr_cov: 0.0001
+    fov_degree:    100
+    det_range:     260.0
+    extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
+    extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+
+publish:
+    path_en:  false
+    scan_publish_en:  true       # false: close all the point cloud output
+    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
+
+pcd_save:
+    pcd_save_en: true
+    interval: -1                 # how many LiDAR frames saved in each pcd file; 
+                                 # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
