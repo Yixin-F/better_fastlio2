@@ -1,6 +1,6 @@
 common:
-    lid_topic:  /points_raw     #"/velodyne_points"
-    imu_topic:  /imu_raw         #"/imu/data"
+    lid_topic:  /kitti/velo/pointcloud     #"/velodyne_points"
+    imu_topic:  /kitti/oxts/imu         #"/imu/data"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 #NCLT
 #    lid_topic: "/points_raw"
@@ -13,6 +13,7 @@ common:
 #RS LiDar
 #    lid_topic: "/rslidar"
 #    imu_topic: "/imu"
+
 
     
 preprocess:

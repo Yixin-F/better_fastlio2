@@ -3,7 +3,10 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/include/**",
+                "/home/fyx/fastlio2/**",
+                "/usr/include/pcl-1.8/**",
+                "/opt/ros/melodic/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

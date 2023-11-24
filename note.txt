@@ -1,0 +1,1 @@
+kitti2bag  需要用conda 创建python2环境  因为tf只能用于py2环境   一直输入kitti2bag查找缺少哪些包 然后 pip install ** 即可
