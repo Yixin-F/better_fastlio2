@@ -1049,7 +1049,7 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
 }
 
 /**
- * @brief 回环检测函数
+ * @brief 回环检测函数 // TODO：没有用SC
  *
  */
 void performLoopClosure()
@@ -2021,7 +2021,7 @@ bool saveMapService(fast_lio_sam::save_mapRequest &req, fast_lio_sam::save_mapRe
     cout << "Saving map to pcd files completed\n"
          << endl;
 
-    // visial optimize global map on viz
+    // visial optimize global map on rviz
     ros::Time timeLaserInfoStamp = ros::Time().fromSec(lidar_end_time);
     string odometryFrame = "camera_init";
     publishCloud(&pubOptimizedGlobalMap, globalSurfCloudDS, timeLaserInfoStamp, odometryFrame);
@@ -2317,9 +2317,9 @@ int main(int argc, char **argv)
     nh.param<bool>("savePCD", savePCD, false);
     nh.param<std::string>("savePCDDirectory", savePCDDirectory, "/Downloads/LOAM/");
 
-    paramSetting(); // 设置相机的内参、相机到hap的外参
+    paramSetting(); // 设置相机的内参、相机到LiDAR的外参
 
-    downSizeFilterCorner.setLeafSize(mappingCornerLeafSize, mappingCornerLeafSize, mappingCornerLeafSize);
+    downSizeFilterCorner.setLeafSize(mappingCornerLeafSize, mappingCornerLeafSize, mappingCornerLeafSize);  // ？？？？提取提取线特征？
     // downSizeFilterSurf.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     downSizeFilterICP.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     downSizeFilterSurroundingKeyPoses.setLeafSize(surroundingKeyframeDensity, surroundingKeyframeDensity, surroundingKeyframeDensity); // for surrounding key poses of scan-to-map optimization
