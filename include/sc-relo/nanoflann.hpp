@@ -145,7 +145,7 @@ public:
   typedef _IndexType IndexType;
   typedef _CountType CountType;
 
-protected:
+private:
   IndexType *indices;
   DistanceType *dists;
   CountType capacity;

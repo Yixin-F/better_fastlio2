@@ -3,9 +3,9 @@ project(fast_lio_sam)
 
 # SET(CMAKE_BUILD_TYPE "Debug")  
 
-ADD_COMPILE_OPTIONS(-std=c++14 )
-ADD_COMPILE_OPTIONS(-std=c++14 )
-# set( CMAKE_CXX_FLAGS "-std=c++14 -O3" )
+ADD_COMPILE_OPTIONS(-std=c++14)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
 
 add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
 
@@ -64,6 +64,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package (GeographicLib REQUIRED)
+# find_package(OpenCV REQUIRED QUIET)
 
 find_package( GTSAMCMakeTools )
 find_package(GTSAM REQUIRED QUIET)
@@ -76,12 +77,16 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
+  # ${OpenCV_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS}
   include)
 
-  # link directories
 # link_directories(
-#   ${GTSAM_LIBRARY_DIRS}
+#   include
+#   ${PCL_LIBRARY_DIRS}
+#   ${GTSAM_LIBRARY_DIR}
+#   ${OpenCV_LIBRARY_DIRS}
+#   ${GeographicLib_LIBRARY_DIRS}
 # )
 
 add_message_files(
@@ -113,6 +118,15 @@ catkin_package(
 
 add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
+add_library(sc include/sc-relo/Scancontext.cpp)
+add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/multi-session/utility.cpp)
+
+# fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)
-target_link_libraries(fastlio_sam_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} ikd_Tree preprocess gtsam) 
+target_link_libraries(fastlio_sam_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} ikd_Tree preprocess sc  gtsam) 
 target_include_directories(fastlio_sam_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+# multi-session for relocalization and merge
+add_executable(multi_session src/multi_session.cpp)
+target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} sc  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+target_include_directories(multi_session PRIVATE ${PYTHON_INCLUDE_DIRS})

@@ -71,6 +71,9 @@
 #include <darknet_ros_msgs/BoundingBox.h>
 #include <darknet_ros_msgs/BoundingBoxes.h>
 
+// scan context
+#include"sc-relo/Scancontext.h"
+
 #define INIT_TIME (0.1)
 #define LASER_POINT_COV (0.001)
 #define MAXN (720000)
@@ -140,6 +143,9 @@ pcl::VoxelGrid<PointType> downSizeFilterSurf; // 单帧内降采样使用voxel g
 pcl::VoxelGrid<PointType> downSizeFilterMap;  // 未使用
 
 KD_TREE ikdtree; // ikdtree类
+
+// TODO: 做全局sc回环其实没必要，先有版本是先最近位姿搜索再使用scan2map的sc匹配
+ScanContext::SCManager scloop; // sc 类
 
 V3F XAxisPoint_body(LIDAR_SP_LEN, 0.0, 0.0);
 V3F XAxisPoint_world(LIDAR_SP_LEN, 0.0, 0.0);
@@ -1028,6 +1034,13 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
 {
     nearKeyframes->clear();
     int cloudSize = copy_cloudKeyPoses6D->size();
+    PointTypePose keyPose_inverse;
+    keyPose_inverse.x = -copy_cloudKeyPoses6D->points[key].x;
+    keyPose_inverse.y = -copy_cloudKeyPoses6D->points[key].y;
+    keyPose_inverse.z = -copy_cloudKeyPoses6D->points[key].z;
+    keyPose_inverse.roll = -copy_cloudKeyPoses6D->points[key].roll;
+    keyPose_inverse.pitch = -copy_cloudKeyPoses6D->points[key].pitch;
+    keyPose_inverse.yaw = -copy_cloudKeyPoses6D->points[key].yaw;
     // searchNum是搜索范围,遍历帧的范围
     for (int i = -searchNum; i <= searchNum; ++i)
     {
@@ -1035,8 +1048,20 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
         // 超出范围,退出
         if (keyNear < 0 || keyNear >= cloudSize)
             continue;
-        // 注意:cloudKeyPoses6D存储的是T_w_b,而点云是lidar系下的,构建icp的submap时,要把点云转到world系
-        *nearKeyframes += *transformPointCloud(surfCloudKeyFrames[keyNear], &copy_cloudKeyPoses6D->points[keyNear]); // fast-lio没有进行特征提取,默认点云就是surf
+        // 注意:cloudKeyPoses6D存储的是T_w_b,而点云是lidar系下的,构建submap时,要把点云转到cur点云系下
+        if(i == 0){
+            *nearKeyframes += *surfCloudKeyFrames[keyNear]; // cur点云本身保持不变
+        }
+        else{
+            PointTypePose nearKeyPose;
+            nearKeyPose.x = keyPose_inverse.x + copy_cloudKeyPoses6D->points[keyNear].x;
+            nearKeyPose.y = keyPose_inverse.y + copy_cloudKeyPoses6D->points[keyNear].y;
+            nearKeyPose.z = keyPose_inverse.z + copy_cloudKeyPoses6D->points[keyNear].z;
+            nearKeyPose.roll = keyPose_inverse.roll + copy_cloudKeyPoses6D->points[keyNear].roll;
+            nearKeyPose.pitch = keyPose_inverse.pitch + copy_cloudKeyPoses6D->points[keyNear].pitch;
+            nearKeyPose.yaw = keyPose_inverse.yaw + copy_cloudKeyPoses6D->points[keyNear].yaw;
+            *nearKeyframes += *transformPointCloud(surfCloudKeyFrames[keyNear], &nearKeyPose); // TODO: fast-lio没有进行特征提取,默认点云就是surf
+        }
     }
     if (nearKeyframes->empty())
         return;
@@ -1074,18 +1099,36 @@ void performLoopClosure()
     {
         return;
     }
+    cout << "[Nearest Pose found] " << " curKeyFrame: " << loopKeyCur << " loopKeyFrame: " << loopKeyPre << endl;
     // 提取
     pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(new pcl::PointCloud<PointType>()); // 当前关键帧的点云
     pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(new pcl::PointCloud<PointType>()); // 历史回环帧周围的点云（局部地图）
     {
         // 提取当前关键帧特征点集合,降采样
-        loopFindNearKeyframes(cureKeyframeCloud, loopKeyCur, 0); // 将cureKeyframeCloud转换到world系下
+        loopFindNearKeyframes(cureKeyframeCloud, loopKeyCur, 0); // 将cureKeyframeCloud保持在cureKeyframeCloud系下
         // 提取历史回环帧周围的点云特征点集合,降采样
-        loopFindNearKeyframes(prevKeyframeCloud, loopKeyPre, historyKeyframeSearchNum); // 选取historyKeyframeSearchNum个keyframe拼成submap
+        loopFindNearKeyframes(prevKeyframeCloud, loopKeyPre, historyKeyframeSearchNum); // 选取historyKeyframeSearchNum个keyframe拼成submap，并转换到cureKeyframeCloud系下
         // 发布回环局部地图submap
-        if (pubHistoryKeyFrames.getNumSubscribers() != 0)
-            publishCloud(&pubHistoryKeyFrames, prevKeyframeCloud, timeLaserInfoStamp, odometryFrame);
+        if (pubHistoryKeyFrames.getNumSubscribers() != 0){
+            pcl::PointCloud<PointType>::Ptr pubKrevKeyframeCloud(new pcl::PointCloud<PointType>());
+            *pubKrevKeyframeCloud += *transformPointCloud(prevKeyframeCloud, &copy_cloudKeyPoses6D->points[loopKeyCur]);  // 将submap转换到world系再发布
+            publishCloud(&pubHistoryKeyFrames, pubKrevKeyframeCloud, timeLaserInfoStamp, odometryFrame);
+        }
     }
+    // TODO: 生成sc，进行匹配，再次声明一次，这里没有使用sc的全局回环
+    Eigen::MatrixXd cureKeyframeSC = scloop.makeScancontext(*cureKeyframeCloud);
+    Eigen::MatrixXd prevKeyframeSC = scloop.makeScancontext(*prevKeyframeCloud);
+    std::pair<double, int> simScore = scloop.distanceBtnScanContext(cureKeyframeSC, prevKeyframeSC);
+    double dist = simScore.first;
+    int align = simScore.second;
+    if(dist > scloop.SC_DIST_THRES){
+        cout << "but they can not be detected by SC." << endl;
+        return ;
+    }
+    std::cout.precision(3);  // TODO: 如果使用sc全局定位，必须将保存的scd精度为3
+    cout << "[SC Loop found]"  << " curKeyFrame: " << loopKeyCur << " loopKeyFrame: " << loopKeyPre 
+              << " distance: " << dist << " nn_align: " << align * scloop.PC_UNIT_SECTORANGLE << " deg." << endl;
+
     // ICP设置
     pcl::IterativeClosestPoint<PointType, PointType> icp; // 使用icp来进行帧到局部地图的配准
     icp.setMaxCorrespondenceDistance(150);                // 设置对应点最大欧式距离,只有对应点之间的距离小于该设置值的对应点才作为ICP计算的点对
@@ -1101,14 +1144,18 @@ void performLoopClosure()
     icp.align(*unused_result); // 进行ICP配准,输出变换后点云
 
     // 检测icp是否收敛以及得分是否满足要求
-    if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
+    if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore){
+        cout << "but they can not be registered by ICP." << endl;
         return;
-
-    std::cout << "icp  success  " << std::endl;
+    }
+    std::cout.precision(3);
+    cout << "[ICP Regiteration success ] " << " curKeyFrame: " << loopKeyCur << " loopKeyFrame: " << loopKeyPre
+              << " icpFitnessScore: " << icp.getFitnessScore() << endl;
 
     // 发布当前关键帧经过回环优化后的位姿变换之后的特征点云供可视化使用
     if (pubIcpKeyFrames.getNumSubscribers() != 0)
     {
+        // TODO: icp.getFinalTransformation()可以用来得到精准位姿
         pcl::PointCloud<PointType>::Ptr closed_cloud(new pcl::PointCloud<PointType>());
         pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud, icp.getFinalTransformation());
         publishCloud(&pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp, odometryFrame);
