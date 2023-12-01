@@ -62,6 +62,14 @@
         "string_view": "cpp",
         "numeric": "cpp",
         "*.ipp": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "list": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "cwctype": "cpp",
+        "fstream": "cpp",
+        "mutex": "cpp",
+        "optional": "cpp"
     }
 }

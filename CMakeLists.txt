@@ -119,7 +119,7 @@ catkin_package(
 add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
-add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/multi-session/utility.cpp)
+add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/multi-session/utility.cpp include/sc-relo/Scancontext.cpp)
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)

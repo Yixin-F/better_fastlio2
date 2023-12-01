@@ -95,8 +95,7 @@ using std::cerr;
 using std::endl;
 
 // pose -> trajectory
-struct PointXYZIRPYTRGB
-{
+struct PointXYZIRPYTRGB{
   PCL_ADD_POINT4D;
   PCL_ADD_RGB;
   PCL_ADD_INTENSITY;
@@ -114,9 +113,8 @@ typedef PointXYZIRPYTRGB PointTypePose;
 typedef pcl::PointCloud<PointTypePose>::Ptr Trajectory;  // load
 
 // point -> scan
-typedef pcl::PointXYZINormal PointType;  // Normal仅为了适配fastlio2的点云类型
-struct keyFrame
-{
+typedef pcl::PointXYZINormal PointType;  // TODO: Normal仅为了适配fastlio2的点云类型
+struct KeyFrame{
     pcl::PointCloud<PointType>::Ptr all_cloud;  // origianl pointcloud
     std::vector<std::pair<int, std::vector<int>>> object_cloud; // TODO: segmented object <object_id, ptIdx>
     Eigen::MatrixXd scv_od;  // T-GRS paper is a variant of scan context
@@ -140,8 +138,7 @@ using SessionEdges = std::multimap<int, Edge>; // from_idx, Edge
 
 
 // g2o的图存储形式
-struct G2oLineInfo 
-{
+struct G2oLineInfo {
     std::string type;
 
     int prev_idx = -1; // for vertex, this member is null
@@ -154,8 +151,7 @@ struct G2oLineInfo
     inline static const std::string kEdgeTypeName = "EDGE_SE3:QUAT";
 }; // G2oLine
 
-struct SphericalPoint
-{
+struct SphericalPoint{
     float az; // azimuth 
     float el; // elevation
     float r; // radius

@@ -1074,7 +1074,7 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
 }
 
 /**
- * @brief 回环检测函数 // TODO：没有用SC
+ * @brief 回环检测函数 // TODO：没有用SC全局回环
  *
  */
 void performLoopClosure()
