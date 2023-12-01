@@ -11,6 +11,32 @@
 #include <tf/transform_broadcaster.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#include <ros/ros.h>
+
+#include <std_msgs/Header.h>
+#include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/search/impl/search.hpp>
+#include <pcl/range_image/range_image.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
+#include <pcl/registration/icp.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/filter.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/crop_box.h> 
+#include <pcl_conversions/pcl_conversions.h>
+
 using namespace std;
 using namespace Eigen;
 
@@ -255,6 +281,45 @@ bool esti_plane(Matrix<T, 4, 1> &pca_result, const PointVector &point, const T &
         }
     }
     return true;
+}
+
+// 0的填充
+std::string padZeros(int val, int num_digits = 6) {
+    std::ostringstream out;
+    out << std::internal << std::setfill('0') << std::setw(num_digits) << val;
+    return out.str();
+}
+
+void saveSCD(std::string fileName, Eigen::MatrixXd matrix, std::string delimiter = " ")
+{
+    // delimiter: ", " or " " etc.
+
+    int precision = 3; // or Eigen::FullPrecision, but SCD does not require such accruate precisions so 3 is enough.
+    const static Eigen::IOFormat the_format(precision, Eigen::DontAlignCols, delimiter, "\n");
+ 
+    std::ofstream file(fileName);
+    if (file.is_open())
+    {
+        file << matrix.format(the_format);
+        file.close();
+    }
+}
+
+// sensor_msgs::PointCloud2 publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame)
+// {
+//     sensor_msgs::PointCloud2 tempCloud;
+//     pcl::toROSMsg(*thisCloud, tempCloud);
+//     tempCloud.header.stamp = thisStamp;
+//     tempCloud.header.frame_id = thisFrame;
+//     if (thisPub->getNumSubscribers() != 0)
+//         thisPub->publish(tempCloud);
+//     return tempCloud;
+// }
+
+template<typename T>
+double ROS_TIME(T msg)
+{
+    return msg->header.stamp.toSec();
 }
 
 

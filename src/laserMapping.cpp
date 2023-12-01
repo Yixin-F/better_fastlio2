@@ -145,7 +145,13 @@ pcl::VoxelGrid<PointType> downSizeFilterMap;  // 未使用
 KD_TREE ikdtree; // ikdtree类
 
 // TODO: 做全局sc回环其实没必要，先有版本是先最近位姿搜索再使用scan2map的sc匹配
-ScanContext::SCManager scloop; // sc 类
+ScanContext::SCManager scManager; // sc 类
+
+// giseop，Scan Context的输入格式
+enum class SCInputType { 
+    SINGLE_SCAN_FULL, 
+    MULTI_SCAN_FEAT 
+}; 
 
 V3F XAxisPoint_body(LIDAR_SP_LEN, 0.0, 0.0);
 V3F XAxisPoint_world(LIDAR_SP_LEN, 0.0, 0.0);
@@ -189,7 +195,7 @@ float z_tollerance;
 float rotation_tollerance;
 
 // CPU Params
-int numberOfCores = 4;
+int numberOfCores = 8;
 double mappingProcessInterval;
 
 /*loop clousre*/
@@ -271,6 +277,12 @@ ros::ServiceServer srvSavePose;
 bool savePCD;            // 是否保存地图
 string savePCDDirectory; // 保存路径
 
+// pose-graph  saver
+std::fstream pgSaveStream; // pg: pose-graph 
+// std::fstream pgTimeSaveStream; // pg: pose-graph 
+std::vector<std::string> edges_str;
+std::vector<std::string> vertices_str;
+
 /*------------------------------------------*/
 #define Hmax 720
 #define Wmax 1280
@@ -333,6 +345,34 @@ void paramSetting(void)
     internalMatProject = (cv::Mat_<double>(3, 4) << cam_in[0], cam_in[1], cam_in[2], cam_in[3],
                           cam_in[4], cam_in[5], cam_in[6], cam_in[7],
                           cam_in[8], cam_in[9], cam_in[10], cam_in[11]);
+}
+
+void writeVertex(const int _node_idx, const gtsam::Pose3& _initPose){
+    gtsam::Point3 t = _initPose.translation();
+    gtsam::Rot3 R = _initPose.rotation();
+
+    std::string curVertexInfo {
+        "VERTEX_SE3:QUAT " + std::to_string(_node_idx) + " "
+         + std::to_string(t.x()) + " " + std::to_string(t.y()) + " " + std::to_string(t.z())  + " " 
+        + std::to_string(R.toQuaternion().x()) + " " + std::to_string(R.toQuaternion().y()) + " " 
+        + std::to_string(R.toQuaternion().z()) + " " + std::to_string(R.toQuaternion().w()) };
+
+    // pgVertexSaveStream << curVertexInfo << std::endl;
+    vertices_str.emplace_back(curVertexInfo);
+}
+
+void writeEdge(const std::pair<int, int> _node_idx_pair, const gtsam::Pose3& _relPose){
+    gtsam::Point3 t = _relPose.translation();
+    gtsam::Rot3 R = _relPose.rotation();
+
+    std::string curEdgeInfo {
+        "EDGE_SE3:QUAT " + std::to_string(_node_idx_pair.first) + " " + std::to_string(_node_idx_pair.second) + " "
+        + std::to_string(t.x()) + " " + std::to_string(t.y()) + " " + std::to_string(t.z())  + " " 
+        + std::to_string(R.toQuaternion().x()) + " " + std::to_string(R.toQuaternion().y()) + " " 
+        + std::to_string(R.toQuaternion().z()) + " " + std::to_string(R.toQuaternion().w()) };
+
+    // pgEdgeSaveStream << curEdgeInfo << std::endl;
+    edges_str.emplace_back(curEdgeInfo);  
 }
 
 /**
@@ -759,6 +799,9 @@ void addOdomFactor()
         gtSAMgraph.add(gtsam::PriorFactor<gtsam::Pose3>(0, trans2gtsamPose(transformTobeMapped), priorNoise));
         // 节点设置初始值,将这个顶点的值加入初始值中
         initialEstimate.insert(0, trans2gtsamPose(transformTobeMapped));
+
+        // 变量节点设置初始值
+        writeVertex(0, trans2gtsamPose(transformTobeMapped));
     }
     // 不是第一帧,增加帧间约束
     else
@@ -767,10 +810,14 @@ void addOdomFactor()
         gtsam::noiseModel::Diagonal::shared_ptr odometryNoise = gtsam::noiseModel::Diagonal::Variances((gtsam::Vector(6) << 1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
         gtsam::Pose3 poseFrom = pclPointTogtsamPose3(cloudKeyPoses6D->points.back()); // 上一个位姿
         gtsam::Pose3 poseTo = trans2gtsamPose(transformTobeMapped);                   // 当前位姿
+        gtsam::Pose3 relPose = poseFrom.between(poseTo);
         // 参数:前一帧id;当前帧id;前一帧与当前帧的位姿变换poseFrom.between(poseTo) = poseFrom.inverse()*poseTo;噪声协方差;
         gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(cloudKeyPoses3D->size() - 1, cloudKeyPoses3D->size(), poseFrom.between(poseTo), odometryNoise));
         // 变量节点设置初始值,将这个顶点的值加入初始值中
         initialEstimate.insert(cloudKeyPoses3D->size(), poseTo);
+
+        writeVertex(cloudKeyPoses3D->size(), poseTo);
+        writeEdge({cloudKeyPoses3D->size()-1, cloudKeyPoses3D->size()}, relPose); 
     }
 }
 
@@ -794,11 +841,14 @@ void addLoopFactor()
         gtsam::noiseModel::Diagonal::shared_ptr noiseBetween = loopNoiseQueue[i];
         // 加入约束
         gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(indexFrom, indexTo, poseBetween, noiseBetween));
+
+        writeEdge({indexFrom, indexTo}, poseBetween);
     }
     // 清空回环相关队列
     loopIndexQueue.clear();
     loopPoseQueue.clear();
     loopNoiseQueue.clear();
+
     aLoopIsClosed = true;
 }
 
@@ -818,8 +868,10 @@ void saveKeyFramesAndFactor()
         return;
     // 激光里程计因子(from fast-lio)
     addOdomFactor();
+
     // 回环因子
-    // addLoopFactor();
+    addLoopFactor();
+
     // 执行优化,更新图模型
     isam->update(gtSAMgraph, initialEstimate);
     isam->update();
@@ -1074,7 +1126,8 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
 }
 
 /**
- * @brief 回环检测函数 // TODO：没有用SC全局回环
+ * @brief 回环检测函数 // TODO：没有用SC全局回环，因为很容易出现错误匹配，与其这样不如相信odometry
+ *    先最近距离再sc，我们可以相信odometry 是比较准的
  *
  */
 void performLoopClosure()
@@ -1094,13 +1147,15 @@ void performLoopClosure()
 
     int loopKeyCur; // 当前关键帧索引
     int loopKeyPre; // 候选回环匹配帧索引
+
     // 根据里程计的距离来检测回环,如果还没有回环则直接返回
-    if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false)
+    if (detectLoopClosureDistance(&loopKeyCur, &loopKeyPre) == false)  
     {
         return;
     }
     cout << "[Nearest Pose found] " << " curKeyFrame: " << loopKeyCur << " loopKeyFrame: " << loopKeyPre << endl;
-    // 提取
+
+    // 提取scan2map
     pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(new pcl::PointCloud<PointType>()); // 当前关键帧的点云
     pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(new pcl::PointCloud<PointType>()); // 历史回环帧周围的点云（局部地图）
     {
@@ -1115,19 +1170,21 @@ void performLoopClosure()
             publishCloud(&pubHistoryKeyFrames, pubKrevKeyframeCloud, timeLaserInfoStamp, odometryFrame);
         }
     }
+
     // TODO: 生成sc，进行匹配，再次声明一次，这里没有使用sc的全局回环
-    Eigen::MatrixXd cureKeyframeSC = scloop.makeScancontext(*cureKeyframeCloud);
-    Eigen::MatrixXd prevKeyframeSC = scloop.makeScancontext(*prevKeyframeCloud);
-    std::pair<double, int> simScore = scloop.distanceBtnScanContext(cureKeyframeSC, prevKeyframeSC);
+    Eigen::MatrixXd cureKeyframeSC = scManager.makeScancontext(*cureKeyframeCloud);
+    Eigen::MatrixXd prevKeyframeSC = scManager.makeScancontext(*prevKeyframeCloud);
+    std::pair<double, int> simScore = scManager.distanceBtnScanContext(cureKeyframeSC, prevKeyframeSC);
     double dist = simScore.first;
     int align = simScore.second;
-    if(dist > scloop.SC_DIST_THRES){
+    if(dist > scManager.SC_DIST_THRES){
         cout << "but they can not be detected by SC." << endl;
         return ;
     }
     std::cout.precision(3);  // TODO: 如果使用sc全局定位，必须将保存的scd精度为3
     cout << "[SC Loop found]"  << " curKeyFrame: " << loopKeyCur << " loopKeyFrame: " << loopKeyPre 
-              << " distance: " << dist << " nn_align: " << align * scloop.PC_UNIT_SECTORANGLE << " deg." << endl;
+              << " distance: " << dist << " nn_align: " << align * scManager.PC_UNIT_SECTORANGLE << " deg." << endl;
+    
 
     // ICP设置
     pcl::IterativeClosestPoint<PointType, PointType> icp; // 使用icp来进行帧到局部地图的配准
@@ -1746,20 +1803,20 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
             RGBpointBodyToWorld(&feats_undistort->points[i],
                                 &laserCloudWorld->points[i]);
         }
-        *pcl_wait_save += *laserCloudWorld;
+        *pcl_wait_save += *laserCloudWorld;   // world
 
-        static int scan_wait_num = 0;
-        scan_wait_num++;
-        if (pcl_wait_save->size() > 0 && pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval)
-        {
-            pcd_index++;
-            string all_points_dir(string(string(ROOT_DIR) + "PCD/scans_") + to_string(pcd_index) + string(".pcd"));
-            pcl::PCDWriter pcd_writer;
-            cout << "current scan saved to /PCD/" << all_points_dir << endl;
-            pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
-            pcl_wait_save->clear();
-            scan_wait_num = 0;
-        }
+        // static int scan_wait_num = 0;
+        // scan_wait_num++;
+        // if (pcl_wait_save->size() > 0 && pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval)
+        // {
+        //     pcd_index++;
+        //     string all_points_dir(string(string(ROOT_DIR) + "PCD/scans_") + to_string(pcd_index) + string(".pcd"));
+        //     pcl::PCDWriter pcd_writer;
+        //     cout << "current scan saved to /PCD/" << all_points_dir << endl;
+        //     pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
+        //     pcl_wait_save->clear();
+        //     scan_wait_num = 0;
+        // }
     }
 }
 
@@ -2420,6 +2477,11 @@ int main(int argc, char **argv)
     // 将函数地址传入kf对象中用于初始化,通过函数(h_dyn_share_in)同时计算测量(z)、估计测量(h)、偏微分矩阵(h_x,h_v)和噪声协方差(R)
     kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 
+    // pose-graph saver
+    pgSaveStream = std::fstream(root_dir + "singlesession_posegraph.g2o", std::fstream::out);
+    // pgTimeSaveStream = std::fstream(root_dir + "times.txt", std::fstream::out); 
+    // pgTimeSaveStream.precision(dbl::max_digits10);
+
     /*** debug record ***/
     FILE *fp;
     string pos_log_dir = root_dir + "/Log/pos_log.txt";
@@ -2657,11 +2719,25 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-    /**************** save map ****************/
-    /* 1. make sure you have enough memories
+    fout_out.close();
+    fout_pre.close();
+
+    /**************** data saver runs when programe is closing ****************/
+    std::cout << "**************** data saver runs when programe is closing ****************" << std::endl;
+
+    if(! (surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size())){
+        std::cout << " the condition --surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()-- is not satisfied" << std::endl;
+        ros::shutdown();
+    }
+    else{
+        std::cout << "the num of total keyframe is " << surfCloudKeyFrames.size() << std::endl;
+    }
+
+    /* 1. make sure you have enough memories to save global map
     /* 2. pcd save will largely influence the real-time performences **/
     if (pcl_wait_save->size() > 0 && pcd_save_en)
     {
+        std::cout << "save global map" << std::endl;
         string file_name = string("scans.pcd");
         string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
         pcl::PCDWriter pcd_writer;
@@ -2669,11 +2745,63 @@ int main(int argc, char **argv)
         pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
     }
 
-    fout_out.close();
-    fout_pre.close();
+    // save sc and keyframe
+     // - SINGLE_SCAN_FULL: using downsampled original point cloud (/full_cloud_projected + downsampling)
+    // - MULTI_SCAN_FEAT: using NearKeyframes (because a MulRan scan does not have beyond region, so to solve this issue ... )
+    const SCInputType sc_input_type = SCInputType::SINGLE_SCAN_FULL; // TODO: change this 
+    bool soMany = false;
+    std::cout << "save sc and keyframe" << std::endl;
 
+    for (size_t i = 0; i < cloudKeyPoses6D->size(); i++){
+        pcl::PointCloud<PointType>::Ptr save_cloud(new pcl::PointCloud<PointType>());
+        if( sc_input_type == SCInputType::SINGLE_SCAN_FULL ) {
+            pcl::copyPointCloud(*surfCloudKeyFrames[i],  *save_cloud);
+            scManager.makeAndSaveScancontextAndKeys(*save_cloud);
+        }  
+        else if (sc_input_type == SCInputType::MULTI_SCAN_FEAT) { 
+            pcl::PointCloud<PointType>::Ptr multiKeyFrameFeatureCloud(new pcl::PointCloud<PointType>());
+            loopFindNearKeyframes(multiKeyFrameFeatureCloud, i, historyKeyframeSearchNum);
+            if(soMany){
+                pcl::copyPointCloud(*multiKeyFrameFeatureCloud,  *save_cloud);
+            }
+            else{
+                pcl::copyPointCloud(*surfCloudKeyFrames[i],  *save_cloud);
+            }
+            scManager.makeAndSaveScancontextAndKeys(*save_cloud); 
+        }
+
+        // save sc data
+        const auto& curr_scd = scManager.getConstRefRecentSCD();
+        std::string curr_scd_node_idx = padZeros(scManager.polarcontexts_.size() - 1);
+
+        saveSCD(root_dir  + curr_scd_node_idx + ".scd", curr_scd);
+
+        string all_points_dir(string(string(ROOT_DIR) + "PCD/") + string(curr_scd_node_idx) + ".pcd");
+        pcl::io::savePCDFileASCII(all_points_dir, *save_cloud);
+    }
+
+    // save poses
+    std::cout << "save poses" << std::endl;
+    string traj_dir(string(string(ROOT_DIR)) + "trajectory.pcd");
+    pcl::io::savePCDFileASCII(traj_dir, *cloudKeyPoses3D);
+    string trans_dir(string(string(ROOT_DIR)) + "transformations.pcd");
+    pcl::io::savePCDFileASCII(trans_dir, *cloudKeyPoses6D);
+
+    // save pose graph 
+    cout << "****************************************************" << endl; 
+    cout << "Saving  posegraph" << endl; 
+
+    for(auto& _line: vertices_str)
+        pgSaveStream << _line << std::endl;
+    for(auto& _line: edges_str)
+        pgSaveStream << _line << std::endl;
+
+    pgSaveStream.close();
+
+    // save log
     if (runtime_pos_log)
     {
+        std::cout << "save log" << std::endl;
         vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;
         FILE *fp2;
         string log_dir = root_dir + "/Log/fast_lio_time_log.csv";
@@ -2690,6 +2818,8 @@ int main(int argc, char **argv)
         }
         fclose(fp2);
     }
+
+    std::cout << "**************** data saver is done ****************" << std::endl;
 
     startFlag = false;
     loopthread.join(); // 分离线程

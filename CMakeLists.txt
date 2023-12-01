@@ -128,5 +128,5 @@ target_include_directories(fastlio_sam_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 # multi-session for relocalization and merge
 add_executable(multi_session src/multi_session.cpp)
-target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} sc  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
 target_include_directories(multi_session PRIVATE ${PYTHON_INCLUDE_DIRS})
