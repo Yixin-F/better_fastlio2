@@ -39,7 +39,7 @@ publish:
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
 pcd_save:
-    pcd_save_en: true
+    map_save_en: true
     interval: -1                 # how many LiDAR frames saved in each pcd file; 
                                  # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
 
@@ -57,8 +57,8 @@ numberOfCores: 4                              # number of cores for mapping opti
 mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
 
 # Surrounding map
-surroundingkeyframeAddingDistThreshold: 10  #1.0   # meters, regulate keyframe adding threshold
-surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
+keyframeAddingDistThreshold: 10  #1.0   # meters, regulate keyframe adding threshold
+keyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
 surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
 surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
 

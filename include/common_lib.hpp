@@ -457,7 +457,7 @@ inline std::string padZeros(int val, int num_digits = 6) {
 }
 
 // save scd for each keyframe
-inline void saveSCD(std::string fileName, Eigen::MatrixXd matrix, std::string delimiter = " "){
+inline void writeSCD(std::string fileName, Eigen::MatrixXd matrix, std::string delimiter = " "){
     // delimiter: ", " or " " etc.
 
     int precision = 3; // or Eigen::FullPrecision, but SCD does not require such accruate precisions so 3 is enough.
