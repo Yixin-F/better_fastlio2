@@ -1,12 +1,8 @@
 #pragma once
 
-#include "utility.h"
+#include "../common_lib.hpp"
 #include "BetweenFactorWithAnchoring.h"
 #include "sc-relo/Scancontext.h"
-
-#include <experimental/optional>
-
-// TODO: rviz interaction
 
 namespace MultiSession{
 
@@ -53,8 +49,6 @@ class Session{
 
 using Sessions = std::map<int, Session>;
 using SessionsDict = std::map<std::string, Session>;
-
-using namespace LTslamParam;
 
 class IncreMapping
 {
@@ -112,9 +106,6 @@ class IncreMapping
     void initOptimizer();
 
     void loadAllSessions();
-
-    friend int genGlobalNodeIdx(const int&, const int&);
-    friend int genAnchorNodeIdx(const int&);
 
     void addAllSessionsToGraph();
     void initTrajectoryByAnchoring(const Session& _sess);

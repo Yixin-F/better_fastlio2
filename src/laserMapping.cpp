@@ -1,77 +1,12 @@
-#include <omp.h>
-#include <mutex>
-#include <math.h>
-#include <thread>
-#include <fstream>
-#include <csignal>
-#include <unistd.h>
-#include <Python.h>
-#include <so3_math.h>
-#include <ros/ros.h>
-#include <Eigen/Core>
-#include "IMU_Processing.hpp"
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/io/pcd_io.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_broadcaster.h>
-#include <geometry_msgs/Vector3.h>
-#include <livox_ros_driver/CustomMsg.h>
+#include "common_lib.hpp"
 #include "preprocess.h"
-#include <ikd-Tree/ikd_Tree.h>
-#include <std_msgs/Header.h>
-#include <std_msgs/Float64MultiArray.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <pcl/search/impl/search.hpp>
-#include <pcl/range_image/range_image.h>
-#include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/common/common.h>
-#include <pcl/common/transforms.h>
-#include <pcl/registration/icp.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/filter.h>
-#include <pcl/filters/crop_box.h>
-#include <pcl_conversions/pcl_conversions.h>
-// gstam
-#include <gtsam/geometry/Rot3.h>
-#include <gtsam/geometry/Pose3.h>
-#include <gtsam/slam/PriorFactor.h>
-#include <gtsam/slam/BetweenFactor.h>
-#include <gtsam/navigation/ImuFactor.h>
-#include <gtsam/navigation/CombinedImuFactor.h>
-#include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include <gtsam/nonlinear/Marginals.h>
-#include <gtsam/nonlinear/Values.h>
-#include <gtsam/inference/Symbol.h>
-#include <gtsam/nonlinear/ISAM2.h>
 
-// save map
-#include "fast_lio_sam/save_map.h"
-#include "fast_lio_sam/save_pose.h"
-// save data in kitti format
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <image_transport/image_transport.h>
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
 #include <darknet_ros_msgs/BoundingBox.h>
 #include <darknet_ros_msgs/BoundingBoxes.h>
 
-// scan context
+#include <ikd-Tree/ikd_Tree.h>
+#include "IMU_Processing.hpp"
+
 #include"sc-relo/Scancontext.h"
 
 #define INIT_TIME (0.1)
@@ -279,7 +214,6 @@ string savePCDDirectory; // 保存路径
 
 // pose-graph  saver
 std::fstream pgSaveStream; // pg: pose-graph 
-// std::fstream pgTimeSaveStream; // pg: pose-graph 
 std::vector<std::string> edges_str;
 std::vector<std::string> vertices_str;
 
@@ -345,34 +279,6 @@ void paramSetting(void)
     internalMatProject = (cv::Mat_<double>(3, 4) << cam_in[0], cam_in[1], cam_in[2], cam_in[3],
                           cam_in[4], cam_in[5], cam_in[6], cam_in[7],
                           cam_in[8], cam_in[9], cam_in[10], cam_in[11]);
-}
-
-void writeVertex(const int _node_idx, const gtsam::Pose3& _initPose){
-    gtsam::Point3 t = _initPose.translation();
-    gtsam::Rot3 R = _initPose.rotation();
-
-    std::string curVertexInfo {
-        "VERTEX_SE3:QUAT " + std::to_string(_node_idx) + " "
-         + std::to_string(t.x()) + " " + std::to_string(t.y()) + " " + std::to_string(t.z())  + " " 
-        + std::to_string(R.toQuaternion().x()) + " " + std::to_string(R.toQuaternion().y()) + " " 
-        + std::to_string(R.toQuaternion().z()) + " " + std::to_string(R.toQuaternion().w()) };
-
-    // pgVertexSaveStream << curVertexInfo << std::endl;
-    vertices_str.emplace_back(curVertexInfo);
-}
-
-void writeEdge(const std::pair<int, int> _node_idx_pair, const gtsam::Pose3& _relPose){
-    gtsam::Point3 t = _relPose.translation();
-    gtsam::Rot3 R = _relPose.rotation();
-
-    std::string curEdgeInfo {
-        "EDGE_SE3:QUAT " + std::to_string(_node_idx_pair.first) + " " + std::to_string(_node_idx_pair.second) + " "
-        + std::to_string(t.x()) + " " + std::to_string(t.y()) + " " + std::to_string(t.z())  + " " 
-        + std::to_string(R.toQuaternion().x()) + " " + std::to_string(R.toQuaternion().y()) + " " 
-        + std::to_string(R.toQuaternion().z()) + " " + std::to_string(R.toQuaternion().w()) };
-
-    // pgEdgeSaveStream << curEdgeInfo << std::endl;
-    edges_str.emplace_back(curEdgeInfo);  
 }
 
 /**
@@ -507,127 +413,6 @@ void updatePath(const PointTypePose &pose_in)
 }
 
 /**
- * @brief
- * 对点云cloudIn进行变换,返回结果点云transformIn
- * cloudKeyPoses6D存储的是T_w_b,而点云是lidar系下的,构建icp的submap时,需要通过外参数T_b_lidar转换
- */
-pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, PointTypePose *transformIn)
-{
-    pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
-    int cloudSize = cloudIn->size();
-    cloudOut->resize(cloudSize);
-
-    Eigen::Isometry3d T_b_lidar(state_point.offset_R_L_I); // 获取body2lidar外参
-    T_b_lidar.pretranslate(state_point.offset_T_L_I);      // pretranslate之前的pre表示的是平移在旋转之前的坐标原点上平移
-
-    Eigen::Affine3f T_w_b_ = pcl::getTransformation(transformIn->x, transformIn->y, transformIn->z, transformIn->roll, transformIn->pitch, transformIn->yaw);
-    Eigen::Isometry3d T_w_b; // world2body
-    T_w_b.matrix() = T_w_b_.matrix().cast<double>();
-
-    Eigen::Isometry3d T_w_lidar = T_w_b * T_b_lidar; // T_w_lidar转换矩阵
-
-    Eigen::Isometry3d transCur = T_w_lidar;
-
-#pragma omp parallel for num_threads(numberOfCores)
-    for (int i = 0; i < cloudSize; ++i)
-    {
-        const auto &pointFrom = cloudIn->points[i];
-        cloudOut->points[i].x = transCur(0, 0) * pointFrom.x + transCur(0, 1) * pointFrom.y + transCur(0, 2) * pointFrom.z + transCur(0, 3);
-        cloudOut->points[i].y = transCur(1, 0) * pointFrom.x + transCur(1, 1) * pointFrom.y + transCur(1, 2) * pointFrom.z + transCur(1, 3);
-        cloudOut->points[i].z = transCur(2, 0) * pointFrom.x + transCur(2, 1) * pointFrom.y + transCur(2, 2) * pointFrom.z + transCur(2, 3);
-        cloudOut->points[i].intensity = pointFrom.intensity;
-    }
-    return cloudOut;
-}
-
-/**
- * @brief 位姿格式变换:pcl->gtsamPose3
- *
- */
-gtsam::Pose3 pclPointTogtsamPose3(PointTypePose thisPoint)
-{
-    return gtsam::Pose3(gtsam::Rot3::RzRyRx(double(thisPoint.roll), double(thisPoint.pitch), double(thisPoint.yaw)),
-                        gtsam::Point3(double(thisPoint.x), double(thisPoint.y), double(thisPoint.z)));
-}
-
-/**
- * @brief 位姿格式变换:float[]->gtsamPose
- *
- */
-gtsam::Pose3 trans2gtsamPose(float transformIn[])
-{
-    return gtsam::Pose3(gtsam::Rot3::RzRyRx(transformIn[0], transformIn[1], transformIn[2]),
-                        gtsam::Point3(transformIn[3], transformIn[4], transformIn[5]));
-}
-
-/**
- * @brief 格式的位姿格式变换:pcl->Affine3f
- *
- */
-Eigen::Affine3f pclPointToAffine3f(PointTypePose thisPoint)
-{
-    return pcl::getTransformation(thisPoint.x, thisPoint.y, thisPoint.z, thisPoint.roll, thisPoint.pitch, thisPoint.yaw);
-}
-
-/**
- * @brief 格式的位姿格式变换:float[]->Affine3f
- *
- */
-Eigen::Affine3f trans2Affine3f(float transformIn[])
-{
-    return pcl::getTransformation(transformIn[3], transformIn[4], transformIn[5], transformIn[0], transformIn[1], transformIn[2]);
-}
-
-/**
- * @brief 位姿格式变换:float[]->pcl
- *
- */
-PointTypePose trans2PointTypePose(float transformIn[])
-{
-    PointTypePose thisPose6D;
-    thisPose6D.x = transformIn[3];
-    thisPose6D.y = transformIn[4];
-    thisPose6D.z = transformIn[5];
-    thisPose6D.roll = transformIn[0];
-    thisPose6D.pitch = transformIn[1];
-    thisPose6D.yaw = transformIn[2];
-    return thisPose6D;
-}
-
-/**
- * @brief 发布thisCloud,返回thisCloud对应msg格式
- *
- */
-sensor_msgs::PointCloud2 publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame)
-{
-    sensor_msgs::PointCloud2 tempCloud;
-    pcl::toROSMsg(*thisCloud, tempCloud);
-    tempCloud.header.stamp = thisStamp;
-    tempCloud.header.frame_id = thisFrame;
-    if (thisPub->getNumSubscribers() != 0)
-        thisPub->publish(tempCloud);
-    return tempCloud;
-}
-
-/**
- * @brief 点到坐标系原点距离
- *
- */
-float pointDistance(PointType p)
-{
-    return sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-}
-
-/**
- * @brief 两点之间距离
- *
- */
-float pointDistance(PointType p1, PointType p2)
-{
-    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z));
-}
-
-/**
  * @brief 初始化
  *
  */
@@ -650,21 +435,6 @@ void allocateMemory()
     {
         transformTobeMapped[i] = 0;
     }
-}
-
-/**
- * @brief EulerAngle转Quaterniond
- *
- */
-Eigen::Quaterniond EulerToQuat(float roll_, float pitch_, float yaw_)
-{
-    Eigen::Quaterniond q; // 四元数q和-q是相等的
-    Eigen::AngleAxisd roll(double(roll_), Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitch(double(pitch_), Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd yaw(double(yaw_), Eigen::Vector3d::UnitZ());
-    q = yaw * pitch * roll;
-    q.normalize();
-    return q;
 }
 
 /**
@@ -801,7 +571,7 @@ void addOdomFactor()
         initialEstimate.insert(0, trans2gtsamPose(transformTobeMapped));
 
         // 变量节点设置初始值
-        writeVertex(0, trans2gtsamPose(transformTobeMapped));
+        writeVertex(0, trans2gtsamPose(transformTobeMapped), vertices_str);
     }
     // 不是第一帧,增加帧间约束
     else
@@ -816,8 +586,8 @@ void addOdomFactor()
         // 变量节点设置初始值,将这个顶点的值加入初始值中
         initialEstimate.insert(cloudKeyPoses3D->size(), poseTo);
 
-        writeVertex(cloudKeyPoses3D->size(), poseTo);
-        writeEdge({cloudKeyPoses3D->size()-1, cloudKeyPoses3D->size()}, relPose); 
+        writeVertex(cloudKeyPoses3D->size(), poseTo, vertices_str);
+        writeEdge({cloudKeyPoses3D->size()-1, cloudKeyPoses3D->size()}, relPose, edges_str); 
     }
 }
 
@@ -842,7 +612,7 @@ void addLoopFactor()
         // 加入约束
         gtSAMgraph.add(gtsam::BetweenFactor<gtsam::Pose3>(indexFrom, indexTo, poseBetween, noiseBetween));
 
-        writeEdge({indexFrom, indexTo}, poseBetween);
+        writeEdge({indexFrom, indexTo}, poseBetween, edges_str);
     }
     // 清空回环相关队列
     loopIndexQueue.clear();

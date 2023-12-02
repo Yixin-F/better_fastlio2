@@ -7,3 +7,13 @@ kitti2bag  需要用conda 创建python2环境  因为tf只能用于py2环境   �
 
 2023.11.30
 multi-session 可编译
+
+
+
+// TODO:
+1）整理 common_lib
+2）icp 位姿变换并发布
+3）配置yaml
+4）有没有代码冗余，如点云反复变换或拷贝
+5）能不能保存数据
+6）设置传感器类型

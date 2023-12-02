@@ -70,6 +70,7 @@
         "cwctype": "cpp",
         "fstream": "cpp",
         "mutex": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "typeindex": "cpp"
     }
 }

@@ -1,14 +1,9 @@
-#include <ros/ros.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "common_lib.hpp"
 #include <livox_ros_driver/CustomMsg.h>
 
 using namespace std;
 
 #define IS_VALID(a) ((abs(a) > 1e8) ? true : false) // 是否是有效值
-
-typedef pcl::PointXYZINormal PointType;
-typedef pcl::PointCloud<PointType> PointCloudXYZI;
 
 /**
  * @brief 枚举类型:表示支持的雷达类型
@@ -128,27 +123,6 @@ namespace rslidar_ros
 } // namespace rslidar_ros
 POINT_CLOUD_REGISTER_POINT_STRUCT(rslidar_ros::Point,
                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, curvature)(float, time, normal_x)(uint16_t, ring, ring))
-
-/**
- * @brief 6D位姿点云结构定义
- *
- */
-struct PointXYZIRPYTRGB
-{
-  PCL_ADD_POINT4D;
-  PCL_ADD_RGB;
-  PCL_ADD_INTENSITY;
-  float roll;
-  float pitch;
-  float yaw;
-  double time;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-} EIGEN_ALIGN16;
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZIRPYTRGB,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, rgb, rgb)(float, intensity, intensity)(float, roll, roll)(float, pitch, pitch)(float, yaw, yaw)(double, time, time))
-
-typedef PointXYZIRPYTRGB PointTypePose;
 
 /**
  * @brief Preproscess类:用于对激光雷达点云数据进行预处理

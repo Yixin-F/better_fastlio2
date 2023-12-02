@@ -54,7 +54,7 @@ void MultiSession::Session::updateKeyPoses(const gtsam::ISAM2 * _isam, const gts
 
     int numPoses = cloudKeyFrames.size();
     for (int node_idx_in_sess = 0; node_idx_in_sess < numPoses; ++node_idx_in_sess){
-        int node_idx_in_global = LTslamParam::genGlobalNodeIdx(index_, node_idx_in_sess);
+        int node_idx_in_global = genGlobalNodeIdx(index_, node_idx_in_sess);
         std::cout << "update the session " << index_ << "'s node: " << node_idx_in_sess << " (global idx: " << node_idx_in_global << ")" << std::endl;
 
         gtsam::Pose3 pose_self_coord = isamCurrentEstimate.at<gtsam::Pose3>(node_idx_in_global);
