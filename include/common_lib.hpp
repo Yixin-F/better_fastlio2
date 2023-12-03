@@ -616,6 +616,8 @@ float pointDistance(PointType p1, PointType p2)
 
 void fsmkdir(std::string _path)
 {
+    if(fs::is_directory(_path) && fs::exists(_path))
+        fs::remove_all(_path);
     if (!fs::is_directory(_path) || !fs::exists(_path)) 
         fs::create_directories(_path); // create src folder
 } //fsmkdir

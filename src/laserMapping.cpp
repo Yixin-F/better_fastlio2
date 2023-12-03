@@ -30,7 +30,7 @@ int kdtree_size_st = 0, kdtree_size_end = 0, add_point_size = 0, kdtree_delete_c
 // common
 bool savePCD = false, saveSCD = false, saveLOG = false, map_save_en = false, time_sync_en = false; 
 string rootDir, savePCDDirectory, saveSCDDirectory, saveLOGDirectory;
-string lid_topic,  camera_topic, imu_topic; // topic;
+string lid_topic, camera_topic, imu_topic; // topic;
 string root_dir = ROOT_DIR; // TODO: ?
 
 // segment
@@ -2012,7 +2012,7 @@ int main(int argc, char **argv)
     // topic
     nh.param<string>("common/lid_topic", lid_topic, "/livox/lidar");
     nh.param<string>("common/imu_topic", imu_topic, "/livox/imu");
-    nh.param<string>("common/camera_topic", imu_topic, "/usb_cam/image_raw");
+    nh.param<string>("common/camera_topic", camera_topic, "/usb_cam/image_raw");
     nh.param<bool>("common/time_sync_en", time_sync_en, false);
 
     // export path
@@ -2049,7 +2049,7 @@ int main(int argc, char **argv)
     nh.param<double>("mapping/fov_degree", fov_deg, 180);
     nh.param<bool>("mapping/extrinsic_est_en", extrinsic_est_en, true);
     nh.param<float>("mapping/mappingSurfLeafSize", mappingSurfLeafSize, 0.2);
-    nh.param<double>("mapping/cube_side_length", cube_len, 200);
+    nh.param<double>("mapping/cube_len", cube_len, 200);
     nh.param<float>("mapping/keyframeAddingDistThreshold", keyframeAddingDistThreshold, 20.0);
     nh.param<float>("mapping/keyframeAddingAngleThreshold", keyframeAddingAngleThreshold, 0.2);
     nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
@@ -2142,6 +2142,7 @@ int main(int argc, char **argv)
     kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 
     // saver path
+    fsmkdir(rootDir);
     string pcd_path = rootDir + savePCDDirectory;
     string scd_path = rootDir + saveSCDDirectory;
     string log_path = rootDir + saveLOGDirectory;
@@ -2162,15 +2163,18 @@ int main(int argc, char **argv)
         cout << "~~~~" << rootDir << " doesn't exist" << endl;
 
     // ROS订阅器和发布器的定义和初始化
-    string repub_topic = lid_topic +"_repub";
+    string repub_topic = lid_topic + "_repub";
+    // std::cout << repub_topic << std::endl;
     ros::Subscriber sub_pcl = p_pre->lidar_type == LIVOX ? (p_pre->livox_type == LIVOX_CUS ? nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : nh.subscribe(repub_topic, 200000, livox_ros_cbk)) : nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
-    ros::Subscriber subLivoxMsg = nh.subscribe<livox_ros_driver::CustomMsg>("/livox/lidar", 100000, LivoxRepubCallback);
-    ros::Subscriber subBox = nh.subscribe<darknet_ros_msgs::BoundingBoxes>("/darknet_ros/bounding_boxes", 100, BoxCallback);
-
-    image_transport::ImageTransport it(nh);
-    image_transport::Subscriber sub = it.subscribe(camera_topic, 1, &imageCallback);
-
+    ros::Subscriber subLivoxMsg = nh.subscribe<livox_ros_driver::CustomMsg>(lid_topic, 100000, LivoxRepubCallback);
+    
+    if (camera_en){
+        image_transport::ImageTransport it(nh);
+        image_transport::Subscriber sub = it.subscribe(camera_topic, 1, &imageCallback);
+        ros::Subscriber subBox = nh.subscribe<darknet_ros_msgs::BoundingBoxes>("/darknet_ros/bounding_boxes", 100, BoxCallback);
+    }
+    
     ros::Publisher pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);           // world系下稠密点云
     ros::Publisher pubLaserCloudColor = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered_color", 100000);    // world系下稠密彩色点云
     ros::Publisher pubLaserCloudFull_body = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered_body", 100000); // imu(body)系下稠密点云
@@ -2197,8 +2201,11 @@ int main(int argc, char **argv)
     // 回环检测线程
     std::thread loopthread(&loopClosureThread);
 
+    cout << "rostopic is ok" << endl;
+
     // 中断处理函数,如果有中断信号(比如Ctrl+C),则执行第二个参数里面的SigHandle函数
     signal(SIGINT, SigHandle);
+
     ros::Rate rate(5000);
     bool status = ros::ok();
     while (status)
@@ -2392,6 +2399,7 @@ int main(int argc, char **argv)
     std::cout << "**************** data saver runs when programe is closing ****************" << std::endl;
 
     if(! (surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size())){
+        // std::cout << surfCloudKeyFrames.size() << " " << cloudKeyPoses3D->points.size() << " " << cloudKeyPoses6D->points.size() << std::endl;
         std::cout << " the condition --surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()-- is not satisfied" << std::endl;
         ros::shutdown();
     }

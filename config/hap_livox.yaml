@@ -4,18 +4,19 @@ common:
     camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 
-    rootDir: "/home/fyx/fastlio2/"
-    savePCD: false                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
+    rootDir: "/home/fyx/fastlio2/src/data"
+    savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
     savePCDDirectory: "PCDs/"        
-    saveSCD: false 
+    saveSCD: true 
     saveSCDDirectory: "SCDs/"
-    saveLOG: false
+    saveLOG: true
     saveLOGDirectory: "LOG/"
     map_save_en: true  # global map
     pcd_save_interval: 1                 # how many LiDAR frames saved in each pcd
     
 preprocess:
     lidar_type: 1                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
+    livox_type: 1                # 1 for LIVOX_CUS
     scan_line:  6
     blind: 4
     feature_enabled: 0  # bool
@@ -24,7 +25,6 @@ preprocess:
 
 camera:
     camera_en: false
-    cube_len: 200
     camera_external: [ 0.000000, -1.000000, 0.000000, 0.000000,
                        0.000000, 0.000000, -1.000000, 0.300000,
                        1.000000, 0.000000, 0.000000, 0.000000,
@@ -40,6 +40,7 @@ mapping:
     b_gyr_cov: 0.0001
     fov_degree:    100
     det_range:     260.0
+    cube_len: 200   # range
     extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
     mappingSurfLeafSize: 0.2
     keyframeAddingDistThreshold: 1.0
@@ -51,7 +52,7 @@ mapping:
 
 ikdtree:
     max_iteration: 4
-    recontructKdTree: false  # if path is too large, the rviz will crash, but default is false
+    recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
     filter_size_map_min: 0.2
 
 loop:
@@ -64,7 +65,7 @@ loop:
 
 segment:
     ground_en: false
-    tollerance_en: false
+    tollerance_en: false  # // TODO: error !
     sensor_height: 1.5
     z_tollerance: 2.0
     rotation_tollerance: 0.2
