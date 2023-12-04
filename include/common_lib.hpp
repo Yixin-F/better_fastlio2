@@ -647,6 +647,21 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     return cloudOut;
 }
 
+pcl::PointCloud<PointType>::Ptr convertPointTypePose(const Trajectory& pose_){
+    pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
+
+    int numberOfCores = 8; // TODO: move to yaml
+    #pragma omp parallel for num_threads(numberOfCores)
+    for(int i = 0; i < pose_->points.size(); i++){
+        PointType pt;
+        pt.x = pose_->points[i].x;
+        pt.y = pose_->points[i].y;
+        pt.z = pose_->points[i].z;
+        convert->points.emplace_back(pt);
+    }
+    return convert;
+}
+
 std::vector<std::pair<double, int>> sortVecWithIdx(const std::vector<double>& arr) 
 { 
     std::vector<std::pair<double, int> > vp; 

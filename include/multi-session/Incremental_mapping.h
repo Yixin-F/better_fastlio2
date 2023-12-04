@@ -31,6 +31,7 @@ class Session{
 
     Session(){}
     Session(int _idx, std::string _name, std::string _session_dir, bool _is_base_session);
+
     void allocateMemory(){
       cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());
       originPoses6D.reset(new pcl::PointCloud<PointTypePose>());
@@ -55,6 +56,13 @@ class IncreMapping
   public:
     ros::NodeHandle  nh;
 
+    ros::Publisher pubCentralTrajectory = nh.advertise<sensor_msgs::PointCloud2>("/central_trajectory", 5);
+    ros::Publisher pubRegisteredTrajectory = nh.advertise<sensor_msgs::PointCloud2>("/registered_trajectory", 5);  
+    ros::Publisher pubCentralGlobalMap = nh.advertise<sensor_msgs::PointCloud2>("/central_map", 10);
+    ros::Publisher pubReloCloud = nh.advertise<sensor_msgs::PointCloud2>("/relo_cloud", 10);        
+    ros::Publisher pubSCLoop = nh.advertise<visualization_msgs::MarkerArray>("sc_loop", 10);
+    ros::Publisher pubRSLoop = nh.advertise<visualization_msgs::MarkerArray>("rs_loop", 10);
+
     std::string sessions_dir_;
     std::string central_sess_name_;
     std::string query_sess_name_;
@@ -63,16 +71,20 @@ class IncreMapping
 
     const int numberOfCores = 8;
     
-    bool is_display_debug_msgs_;
+    bool is_display_debug_msgs_ = true;
 
-    int kNumSCLoopsUpperBound;
-    int kNumRSLoopsUpperBound;
+    ros::Time publishTimeStamp = ros::Time().fromSec(double(1999.1217));
 
-    float loopFitnessScoreThreshold;
+    float loopFitnessScoreThreshold = 0.7;
     static inline int num_sessions = 1; // session index should start from 1
 
     Sessions sessions_;
     SessionsDict sessions_dict_;
+
+    pcl::PointCloud<PointType>::Ptr centralMap_;
+
+    float pubSize = 0.5;
+    pcl::VoxelGrid<PointType> downSizeFilterPub;
 
     const int target_sess_idx = 1; // means the centralt session. recommend to use 1 for it (because for the stable indexing for anchor node index) 
     const int source_sess_idx = 2; // TODO: generalize this function, change this sess_idx pair for arbitary pair (e.g., [2,7], [1,5])
@@ -97,7 +109,22 @@ class IncreMapping
 
     std::mutex mtx;
 
-    IncreMapping() : poseOrigin(gtsam::Pose3(gtsam::Rot3::RzRyRx(0.0, 0.0, 0.0), gtsam::Point3(0.0, 0.0, 0.0))) {}
+
+    IncreMapping(std::string sessions_dir, std::string central_sess_name, std::string query_sess_name, std::string save_directory) : poseOrigin(gtsam::Pose3(gtsam::Rot3::RzRyRx(0.0, 0.0, 0.0), gtsam::Point3(0.0, 0.0, 0.0))) {
+      sessions_dir_ = sessions_dir;
+      central_sess_name_ = central_sess_name;
+      query_sess_name_ = query_sess_name;
+      save_directory_ = save_directory;
+      
+      centralMap_.reset(new pcl::PointCloud<PointType>());
+      downSizeFilterPub.setLeafSize(pubSize, pubSize, pubSize);
+
+      initOptimizer();
+      initNoiseConstants();
+
+      loadAllSessions();
+      addAllSessionsToGraph();
+    }
     ~IncreMapping(){}
 
     void run( void );
@@ -106,6 +133,7 @@ class IncreMapping
     void initOptimizer();
 
     void loadAllSessions();
+    void loadCentralMap();
 
     void addAllSessionsToGraph();
     void initTrajectoryByAnchoring(const Session& _sess);
@@ -123,7 +151,7 @@ class IncreMapping
     
     void addFactorsWrtInfoGain();
 
-    void optimizeMultisesseionGraph(bool _toOpt);
+    void optimizeMultisesseionGraph(bool _toOpt, int iteration);
     void updateSessionsPoses();
 
     std::experimental::optional<gtsam::Pose3> doICPVirtualRelative(Session& target_sess, Session& source_sess, 
@@ -134,6 +162,10 @@ class IncreMapping
     // saver 
     gtsam::Pose3 getPoseOfIsamUsingKey(gtsam::Key _key);
     void writeAllSessionsTrajectories(std::string _postfix);
+
+    // visualization
+    void visualizeLoopClosure();
+    void publish();
     
 };
 

@@ -609,7 +609,7 @@ void saveKeyFramesAndFactor()
 
     // 执行优化,更新图模型
     isam->update(gtSAMgraph, initialEstimate);
-    // isam->update();
+    isam->update();
 
     // TODO: 如果加入了回环约束,isam需要进行更多次的优化
     if (aLoopIsClosed == true){
@@ -1501,19 +1501,6 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
                                 &laserCloudWorld->points[i]);
         }
         *pcl_wait_save += *laserCloudWorld;   // world
-
-        // static int scan_wait_num = 0;
-        // scan_wait_num++;
-        // if (pcl_wait_save->size() > 0 && pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval)
-        // {
-        //     pcd_index++;
-        //     string all_points_dir(string(string(ROOT_DIR) + "PCD/scans_") + to_string(pcd_index) + string(".pcd"));
-        //     pcl::PCDWriter pcd_writer;
-        //     cout << "current scan saved to /PCD/" << all_points_dir << endl;
-        //     pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
-        //     pcl_wait_save->clear();
-        //     scan_wait_num = 0;
-        // }
     }
 }
 
@@ -1692,15 +1679,6 @@ bool savePoseService(fast_lio_sam::save_poseRequest &req, fast_lio_sam::save_pos
 
     std::ofstream file_pose_optimized;
     std::ofstream file_pose_without_optimized;
-
-    // string savePoseDirectory;
-    // cout << "****************************************************" << endl;
-    // cout << "Saving poses to pose files ..." << endl;
-    // if (req.destination.empty())
-    //     savePoseDirectory = std::getenv("HOME") + savePCDDirectory;
-    // else
-    //     savePoseDirectory = std::getenv("HOME") + req.destination;
-    // cout << "Save destination: " << savePoseDirectory << endl;
 
     // create file
     CreateFile(file_pose_optimized, rootDir + "optimized_pose.txt");
@@ -2146,6 +2124,9 @@ int main(int argc, char **argv)
     string pcd_path = rootDir + savePCDDirectory;
     string scd_path = rootDir + saveSCDDirectory;
     string log_path = rootDir + saveLOGDirectory;
+    fsmkdir(pcd_path);
+    fsmkdir(scd_path);
+    fsmkdir(log_path);
  
     pgSaveStream = std::fstream(rootDir + "singlesession_posegraph.g2o", std::fstream::out);
 
@@ -2154,9 +2135,9 @@ int main(int argc, char **argv)
     fp = fopen(pos_log_dir.c_str(), "w");
 
     ofstream fout_pre, fout_out, fout_dbg;
-    fout_pre.open(rootDir+ "mat_pre.txt", ios::out);
-    fout_out.open(rootDir + "mat_out.txt", ios::out);
-    fout_dbg.open(rootDir + "dbg.txt", ios::out);
+    fout_pre.open(log_path+ "mat_pre.txt", ios::out);
+    fout_out.open(log_path + "mat_out.txt", ios::out);
+    fout_dbg.open(log_path + "dbg.txt", ios::out);
     if (fout_pre && fout_out)
         cout << "~~~~" << rootDir << " file opened" << endl;
     else
@@ -2380,7 +2361,7 @@ int main(int argc, char **argv)
                 s_plot9[time_log_counter] = aver_time_consu;                // 平均消耗时间
                 s_plot10[time_log_counter] = add_point_size;                // 添加点数量
                 time_log_counter++;
-                printf("[ mapping ]: time: IMU + Map + Input Downsample: %0.6f ave match: %0.6f ave solve: %0.6f  ave ICP: %0.6f  map incre: %0.6f ave total: %0.6f icp: %0.6f construct H: %0.6f \n", t1 - t0, aver_time_match, aver_time_solve, t3 - t1, t5 - t3, aver_time_consu, aver_time_icp, aver_time_const_H_time);
+                printf("[ Mapping Time ]  Input: %0.6f ave match: %0.6f ave solve: %0.6f  ave ICP: %0.6f  map incre: %0.6f ave total: %0.6f icp: %0.6f construct H: %0.6f \n", t1 - t0, aver_time_match, aver_time_solve, t3 - t1, t5 - t3, aver_time_consu, aver_time_icp, aver_time_const_H_time);
                 ext_euler = SO3ToEuler(state_point.offset_R_L_I);
                 fout_out << setw(20) << Measures.lidar_beg_time - first_lidar_time << " " << euler_cur.transpose() << " " << state_point.pos.transpose() << " " << ext_euler.transpose() << " " << state_point.offset_T_L_I.transpose() << " " << state_point.vel.transpose()
                          << " " << state_point.bg.transpose() << " " << state_point.ba.transpose() << " " << state_point.grav << " " << feats_undistort->points.size() << endl;
@@ -2398,8 +2379,8 @@ int main(int argc, char **argv)
     /**************** data saver runs when programe is closing ****************/
     std::cout << "**************** data saver runs when programe is closing ****************" << std::endl;
 
-    if(! (surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size())){
-        // std::cout << surfCloudKeyFrames.size() << " " << cloudKeyPoses3D->points.size() << " " << cloudKeyPoses6D->points.size() << std::endl;
+    if(! ((surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size()) && (cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()))){
+        std::cout << surfCloudKeyFrames.size() << " " << cloudKeyPoses3D->points.size() << " " << cloudKeyPoses6D->points.size() << std::endl;
         std::cout << " the condition --surfCloudKeyFrames.size() == cloudKeyPoses3D->points.size() == cloudKeyPoses6D->points.size()-- is not satisfied" << std::endl;
         ros::shutdown();
     }

@@ -4,7 +4,7 @@ common:
     camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 
-    rootDir: "/home/fyx/fastlio2/src/data"
+    rootDir: "/home/fyx/fastlio2/src/data/"
     savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
     savePCDDirectory: "PCDs/"        
     saveSCD: true 
@@ -80,4 +80,4 @@ visualization:
     globalMapVisualizationSearchRadius: 10.0
     globalMapVisualizationPoseDensity: 5
     globalMapVisualizationLeafSize: 0.5
-    visulize_IkdtreeMap: false
+    visulize_IkdtreeMap: true

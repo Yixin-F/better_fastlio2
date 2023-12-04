@@ -1,6 +1,22 @@
 #include "Incremental_mapping.h"
 
-// Session
+bool fileNameSort(std::string name1_, std::string name2_){  // filesort by name
+    std::string::size_type iPos1 = name1_.find_last_of('/') + 1;
+	std::string filename1 = name1_.substr(iPos1, name1_.length() - iPos1);
+	std::string name1 = filename1.substr(0, filename1.rfind("."));
+
+    std::string::size_type iPos2 = name2_.find_last_of('/') + 1;
+    std::string filename2 = name2_.substr(iPos2, name2_.length() - iPos2);
+	std::string name2 = filename2.substr(0, filename2.rfind(".")); 
+
+    return std::stoi(name1) < std::stoi(name2);
+}
+
+bool pairIntAndStringSort(const std::pair<int, std::string>& pair_1, const std::pair<int, std::string>& pair_2){
+    return pair_1.first < pair_2.first;
+}
+
+// initialize Session
 MultiSession::Session::Session(int _idx, std::string _name, std::string _session_dir_path, bool _is_base_session)
     : index_(_idx), name_(_name), session_dir_path_(_session_dir_path), is_base_session_(_is_base_session){
 
@@ -11,7 +27,7 @@ MultiSession::Session::Session(int _idx, std::string _name, std::string _session
     loadSessionScanContextDescriptors();
     loadSessionKeyframePointclouds();
 
-    const float kICPFilterSize = 0.3; // TODO move to yaml 
+    const float kICPFilterSize = 0.2; // TODO move to yaml 
     downSizeFilterICP.setLeafSize(kICPFilterSize, kICPFilterSize, kICPFilterSize);
 } // ctor
 
@@ -31,7 +47,7 @@ void MultiSession::Session::initKeyPoses(void){
         thisPose6D.roll  = pose.rotation().roll();
         thisPose6D.pitch = pose.rotation().pitch();
         thisPose6D.yaw   = pose.rotation().yaw();
-        thisPose6D.time = 0.0; // TODO
+        thisPose6D.time = 0.0; // TODO: no-use
 
         cloudKeyPoses6D->push_back(thisPose6D);    
     }
@@ -113,11 +129,12 @@ void MultiSession::Session::loopFindNearKeyframesLocalCoord(KeyFrame& nearKeyfra
     *nearKeyframes.all_cloud = *cloud_temp;
 } 
 
+// load pointcloud
 void MultiSession::Session::loadSessionKeyframePointclouds(){
     std::string pcd_dir = session_dir_path_ + "/Scans/";
 
-    // parse names (sorted)
-    std::map<int, std::string> pcd_names; // for auto-sort (because scManager should register SCDs in the right node order.)
+    // parse names (un-sorted)
+    std::vector<std::pair<int, std::string>> pcd_names;
     for(auto& _pcd : fs::directory_iterator(pcd_dir)) {
         std::string pcd_name = _pcd.path().filename();
 
@@ -127,8 +144,11 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
         int pcd_idx = std::stoi(pcd_idx_str);
         std::string pcd_name_filepath = _pcd.path();
 
-        pcd_names.insert(std::make_pair(pcd_idx, pcd_name_filepath));
+        pcd_names.emplace_back(std::make_pair(pcd_idx, pcd_name_filepath));
     }    
+
+    // filesort
+    std::sort(pcd_names.begin(), pcd_names.end(), pairIntAndStringSort);   // easy 
 
     // load PCDs
     int num_pcd_loaded = 0;
@@ -142,29 +162,34 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
 
         num_pcd_loaded++;
         if(num_pcd_loaded >= nodes_.size()) {
+            std::cout << "error in the num of pcds" << std::endl;
             break;
         }
     }
     std::cout << "PCDs are loaded (" << name_ << ")" << std::endl;
 }
 
+// load sc
 void MultiSession::Session::loadSessionScanContextDescriptors(){
     std::string scd_dir = session_dir_path_ + "/SCDs/";
     
-    // parse names (sorted)
-    std::map<int, std::string> scd_names; // for auto-sort (because scManager should register SCDs in the right node order.)
+    // parse names (un-sorted)
+    std::vector<std::pair<int, std::string>> scd_names;
     for(auto& _scd : fs::directory_iterator(scd_dir)){
         std::string scd_name = _scd.path().filename();
 
         std::stringstream scd_name_stream {scd_name};
         std::string scd_idx_str; 
-        getline(scd_name_stream, scd_idx_str, ',');
+        getline(scd_name_stream, scd_idx_str, '.');
         int scd_idx = std::stoi(scd_idx_str);
         std::string scd_name_filepath = _scd.path();
 
-        scd_names.insert(std::make_pair(scd_idx, scd_name_filepath));
+        scd_names.emplace_back(std::make_pair(scd_idx, scd_name_filepath));
     }    
 
+    // filesort
+    std::sort(scd_names.begin(), scd_names.end(), pairIntAndStringSort);   // easy 
+    
     // load SCDs
     int num_scd_loaded = 0;
     for (auto const& _scd_name: scd_names){
@@ -175,12 +200,14 @@ void MultiSession::Session::loadSessionScanContextDescriptors(){
 
         num_scd_loaded++;
         if(num_scd_loaded >= nodes_.size()) {
+            std::cout << "error in the num of scds" << std::endl;
             break;
         }
     }
     std::cout << "SCDs are loaded (" << name_ << ")" << std::endl;
 }
 
+// load pose-graph
 void MultiSession::Session::loadSessionGraph() 
 {
     std::string posefile_path = session_dir_path_ + "/singlesession_posegraph.g2o";
@@ -282,25 +309,23 @@ void MultiSession::IncreMapping::writeAllSessionsTrajectories(std::string _postf
     }
 }
 
-void MultiSession::IncreMapping::run( void ){
-    initOptimizer();
-    initNoiseConstants();
+// void MultiSession::IncreMapping::run( void ){
+    
+//     std::cout << "----------  current estimate -----------" << std::endl;
+//     optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges 
+//     writeAllSessionsTrajectories(std::string("bfr_intersession_loops"));
 
-    loadAllSessions();
-    addAllSessionsToGraph();
+//     std::cout << "----------  sc estimate -----------" << std::endl;
+//     detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
+//     addSCloops();
+//     optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges + SC loop edges
 
-    optimizeMultisesseionGraph(true); // optimize the graph with existing edges 
-    writeAllSessionsTrajectories(std::string("bfr_intersession_loops"));
+//     std::cout << "----------  rs estimate -----------" << std::endl;
+//     bool toOpt = addRSloops(); // using the optimized estimates (rough alignment using SC)
+//     optimizeMultisesseionGraph(toOpt, iteration); // optimize the graph with existing edges + SC loop edges + RS loop edges
 
-    detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
-    addSCloops();
-    optimizeMultisesseionGraph(true); // optimize the graph with existing edges + SC loop edges
-
-    bool toOpt = addRSloops(); // using the optimized estimates (rough alignment using SC)
-    optimizeMultisesseionGraph(toOpt); // optimize the graph with existing edges + SC loop edges + RS loop edges
-
-    writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
-}
+//     writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
+// }
 
 void MultiSession::IncreMapping::initNoiseConstants(){
     // Variances Vector6 order means
@@ -355,16 +380,15 @@ void MultiSession::IncreMapping::updateSessionsPoses(){
 } // updateSessionsPoses
 
 
-void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt){
+void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt, int iteration){
     if(!_toOpt)
         return;
 
     isam->update(gtSAMgraph, initialEstimate);
+
+    // set it when ros::ok()
     isam->update();
-    isam->update();
-    isam->update();
-    isam->update();
-    isam->update();
+
     isamCurrentEstimate = isam->calculateEstimate(); // must be followed by update 
 
     gtSAMgraph.resize(0);
@@ -372,15 +396,16 @@ void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt){
 
     updateSessionsPoses(); 
 
+
     if(is_display_debug_msgs_) {
-        std::cout << "**********************************************" << std::endl;
-        std::cout << "***** variable values after optimization *****" << std::endl;
+        std::cout << "***** variable values after optimization " << iteration << " *****" << std::endl;
         std::cout << std::endl;
         isamCurrentEstimate.print("Current estimate: ");
         std::cout << std::endl;
         // std::ofstream os("/home/user/Documents/catkin2021/catkin_ltmapper/catkin_ltmapper_dev/src/ltmapper/data/3d/kaist/PoseGraphExample.dot");
         // gtSAMgraph.saveGraph(os, isamCurrentEstimate);
     }
+
 } // optimizeMultisesseionGraph
 
 
@@ -515,6 +540,7 @@ void MultiSession::IncreMapping::detectInterSessionSCloops() // using ScanContex
     RSLoopIdxPairs_.clear();
     auto& target_scManager = target_sess.scManager;
     auto& source_scManager = source_sess.scManager;
+    TicToc time_count;
     for (int source_node_idx=0; source_node_idx < int(source_scManager.polarcontexts_.size()); source_node_idx++)
     {
         std::vector<float> source_node_key = source_scManager.polarcontext_invkeys_mat_.at(source_node_idx);
@@ -532,8 +558,8 @@ void MultiSession::IncreMapping::detectInterSessionSCloops() // using ScanContex
 
         SCLoopIdxPairs_.emplace_back(std::make_pair(loop_idx_target_session, loop_idx_source_session));
     }
-
-    ROS_INFO_STREAM("\033[1;32m Total " << SCLoopIdxPairs_.size() << " inter-session loops are found. \033[0m");
+    double ave_time = time_count.toc("sc")/SCLoopIdxPairs_.size();
+    ROS_INFO_STREAM("\033[1;32m Total " << SCLoopIdxPairs_.size() << " inter-session loops are found. Average time "<<  ave_time <<  " \033[0m" );
 } // detectInterSessionSCloops
 
 
@@ -575,7 +601,7 @@ void MultiSession::IncreMapping::addSCloops(){
 
     // equi-sampling sc loops 
     int num_scloops_all_found = int(SCLoopIdxPairs_.size());
-    int num_scloops_to_be_added = std::min( num_scloops_all_found, kNumSCLoopsUpperBound );
+    int num_scloops_to_be_added = num_scloops_all_found;
     int equisampling_gap = num_scloops_all_found / num_scloops_to_be_added;
 
     auto sc_loop_idx_pairs_sampled = equisampleElements(SCLoopIdxPairs_, equisampling_gap, num_scloops_to_be_added);
@@ -706,8 +732,6 @@ void MultiSession::IncreMapping::findNearestRSLoopsTargetNodeIdx() // based-on i
 
 
 bool MultiSession::IncreMapping::addRSloops(){
-    if( kNumRSLoopsUpperBound == 0 )
-        return false;
 
     // find nearest target node idx 
     findNearestRSLoopsTargetNodeIdx();
@@ -717,7 +741,7 @@ bool MultiSession::IncreMapping::addRSloops(){
     if( num_rsloops_all_found == 0 )
         return false;
 
-    int num_rsloops_to_be_added = std::min( num_rsloops_all_found, kNumRSLoopsUpperBound );
+    int num_rsloops_to_be_added = num_rsloops_all_found;
     int equisampling_gap = num_rsloops_all_found / num_rsloops_to_be_added;
 
     auto rs_loop_idx_pairs_sampled = equisampleElements(RSLoopIdxPairs_, equisampling_gap, num_rsloops_to_be_added);
@@ -844,7 +868,165 @@ void MultiSession::IncreMapping::loadAllSessions() {
     std::for_each( sessions_.begin(), sessions_.end(), [](auto& _sess_pair) { 
                 cout << " — " << _sess_pair.second.name_ << " (is central: " << _sess_pair.second.is_base_session_ << ")" << endl; 
                 } );
-
 } // loadSession
 
+
+void MultiSession::IncreMapping::visualizeLoopClosure()
+{
+    std::string odometryFrame = "camera_init";
+
+    if (SCLoopIdxPairs_.empty() && RSLoopIdxPairs_.empty())
+        return;
+
+    // show sc
+    visualization_msgs::MarkerArray markerArray_sc;
+    // 回环顶点
+    visualization_msgs::Marker markerNode_sc;
+    markerNode_sc.header.frame_id = odometryFrame;
+    // markerNode_sc.header.stamp = timeLaserInfoStamp;
+    // action对应的操作:ADD=0、MODIFY=0、DELETE=2、DELETEALL=3,即添加、修改、删除、全部删除
+    markerNode_sc.action = visualization_msgs::Marker::ADD;
+    // 设置形状:球体
+    markerNode_sc.type = visualization_msgs::Marker::SPHERE_LIST;
+    markerNode_sc.ns = "loop_nodes";
+    markerNode_sc.id = 0;
+    markerNode_sc.pose.orientation.w = 1;
+    // 尺寸
+    markerNode_sc.scale.x = 0.3;
+    markerNode_sc.scale.y = 0.3;
+    markerNode_sc.scale.z = 0.3;
+    // 颜色
+    markerNode_sc.color.r = 0.9;
+    markerNode_sc.color.g = 0;
+    markerNode_sc.color.b = 0;
+    markerNode_sc.color.a = 1;
+    // 回环边
+    visualization_msgs::Marker markerEdge_sc;
+    markerEdge_sc.header.frame_id = odometryFrame;
+    // markerEdge_sc.header.stamp = timeLaserInfoStamp;
+    markerEdge_sc.action = visualization_msgs::Marker::ADD;
+    // 设置形状:线
+    markerEdge_sc.type = visualization_msgs::Marker::LINE_LIST;
+    markerEdge_sc.ns = "loop_edges";
+    markerEdge_sc.id = 1;
+    markerEdge_sc.pose.orientation.w = 1;
+    markerEdge_sc.scale.x = 0.1;
+    markerEdge_sc.color.r = 0.9;
+    markerEdge_sc.color.g = 0;
+    markerEdge_sc.color.b = 0;
+    markerEdge_sc.color.a = 1;
+
+    for (auto& it : SCLoopIdxPairs_){
+        int key_cur = it.first;
+        int key_pre = it.second;
+        geometry_msgs::Point p;
+        p.x = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].x;
+        p.y = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].y;
+        p.z = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].z;
+        markerNode_sc.points.push_back(p);
+        markerEdge_sc.points.push_back(p);
+        p.x = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].x;
+        p.y = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].y;
+        p.z = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].z;
+        markerNode_sc.points.push_back(p);
+        markerEdge_sc.points.push_back(p);
+    }
+
+    markerArray_sc.markers.push_back(markerNode_sc);
+    markerArray_sc.markers.push_back(markerEdge_sc);
+    pubSCLoop.publish(markerArray_sc);
+
+    // show rs
+    visualization_msgs::MarkerArray markerArray_rs;
+    // rs回环顶点
+    visualization_msgs::Marker markerNode_rs;
+    markerNode_rs.header.frame_id = odometryFrame;
+    // markerNode_rs.header.stamp = timeLaserInfoStamp;
+    // action对应的操作:ADD=0、MODIFY=0、DELETE=2、DELETEALL=3,即添加、修改、删除、全部删除
+    markerNode_rs.action = visualization_msgs::Marker::ADD;
+    // 设置形状:球体
+    markerNode_rs.type = visualization_msgs::Marker::SPHERE_LIST;
+    markerNode_rs.ns = "loop_nodes";
+    markerNode_rs.id = 0;
+    markerNode_rs.pose.orientation.w = 1;
+    // 尺寸
+    markerNode_rs.scale.x = 0.3;
+    markerNode_rs.scale.y = 0.3;
+    markerNode_rs.scale.z = 0.3;
+    // 颜色
+    markerNode_rs.color.r = 0;
+    markerNode_rs.color.g = 0;
+    markerNode_rs.color.b = 0.9;
+    markerNode_rs.color.a = 1;
+    // 回环边
+    visualization_msgs::Marker markerEdge_rs;
+    markerEdge_rs.header.frame_id = odometryFrame;
+    // markerEdge_rs.header.stamp = timeLaserInfoStamp;
+    markerEdge_rs.action = visualization_msgs::Marker::ADD;
+    // 设置形状:线
+    markerEdge_rs.type = visualization_msgs::Marker::LINE_LIST;
+    markerEdge_rs.ns = "loop_edges";
+    markerEdge_rs.id = 1;
+    markerEdge_rs.pose.orientation.w = 1;
+    markerEdge_rs.scale.x = 0.1;
+    markerEdge_rs.color.r = 0;
+    markerEdge_rs.color.g = 0;
+    markerEdge_rs.color.b = 0.9;
+    markerEdge_rs.color.a = 1;
+
+    for (auto& it : RSLoopIdxPairs_){
+        int key_cur = it.first;
+        int key_pre = it.second;
+        geometry_msgs::Point p;
+        p.x = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].x;
+        p.y = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].y;
+        p.z = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[key_cur].z;
+        markerNode_rs.points.push_back(p);
+        markerEdge_rs.points.push_back(p);
+        p.x = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].x;
+        p.y = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].y;
+        p.z = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[key_pre].z;
+        markerNode_rs.points.push_back(p);
+        markerEdge_rs.points.push_back(p);
+    }
+
+    markerArray_rs.markers.push_back(markerNode_rs);
+    markerArray_rs.markers.push_back(markerEdge_rs);
+    pubRSLoop.publish(markerArray_rs);
+
+}
+
+void MultiSession::IncreMapping::loadCentralMap(){
+    std::string name = sessions_dir_ + central_sess_name_ + "globalMap.pcd";
+    if(pcl::io::loadPCDFile(name, *centralMap_) == 0){
+        std::cerr << "cannot load cental map" << std::endl;
+        ros::shutdown();
+    } 
+}
+
+void MultiSession::IncreMapping::publish(){
+    publishCloud(&pubCentralGlobalMap, centralMap_, publishTimeStamp, "cameara_init");
+
+    pcl::PointCloud<PointType>::Ptr traj_central(new pcl::PointCloud<PointType>());
+    traj_central = convertPointTypePose(sessions_.at(target_sess_idx).cloudKeyPoses6D);
+    publishCloud(&pubCentralTrajectory, traj_central, publishTimeStamp, "cameara_init");
+
+    pcl::PointCloud<PointType>::Ptr traj_regis(new pcl::PointCloud<PointType>());
+    traj_regis = convertPointTypePose(sessions_.at(source_sess_idx).cloudKeyPoses6D);
+    publishCloud(&pubRegisteredTrajectory, traj_regis, publishTimeStamp, "cameara_init");
+
+    visualizeLoopClosure();
+
+    for(auto& it : SCLoopIdxPairs_){
+        pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
+        reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
+        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "cameara_init");
+    }
+
+    for(auto& it : RSLoopIdxPairs_){
+        pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
+        reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
+        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "cameara_init");
+    }
+}
 

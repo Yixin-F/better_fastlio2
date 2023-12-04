@@ -1,13 +1,13 @@
 2023.11.26
 kitti2bag  需要用conda 创建python2环境  因为tf只能用于py2环境   一直输入kitti2bag查找缺少哪些包 然后 pip install ** 即可
 没有用sc来回环
+need a fileplayer
 
 2023.11.27
-加入sc回环
+加入sc回环  ok
 
 2023.11.30
 multi-session 可编译
-
 
 2023.12.2
 // TODO:
@@ -18,6 +18,13 @@ multi-session 可编译
 5）能不能保存数据 done
 6）设置传感器类型 done
 
+all-api   done
+
 2023.12.3 
-run
-test
+run   ok
+test   ok
+
+2023.12.4  publish msg
+loop_marker
+trajectory
+relo_pointcloud with timestamp
