@@ -173,7 +173,7 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
         cloudKeyFrames.push_back(thisKeyFrame);
 
         num_pcd_loaded++;
-        if(num_pcd_loaded >= nodes_.size()) {
+        if(num_pcd_loaded > nodes_.size()) {
             std::cout << "error in the num of pcds" << std::endl;
             break;
         }
@@ -211,7 +211,7 @@ void MultiSession::Session::loadSessionScanContextDescriptors(){
         scManager.saveScancontextAndKeys(scd);
 
         num_scd_loaded++;
-        if(num_scd_loaded >= nodes_.size()) {
+        if(num_scd_loaded > nodes_.size()) {
             std::cout << "error in the num of scds" << std::endl;
             break;
         }
@@ -435,7 +435,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPVirtu
     targetKeyframe.all_cloud = targetKeyframeCloud;
 
     int base_key = 0; // its okay. (using the origin for sc loops' co-base) 
-    int historyKeyframeSearchNum = 25; // TODO move to yaml 
+    int historyKeyframeSearchNum = 1; // TODO move to yaml 
 
     source_sess.loopFindNearKeyframesLocalCoord(cureKeyframe, loop_idx_source_session, 0);
     target_sess.loopFindNearKeyframesLocalCoord(targetKeyframe, loop_idx_target_session, historyKeyframeSearchNum); 
@@ -493,7 +493,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPGloba
     targetKeyframe.all_cloud = targetKeyframeCloud;
 
     int base_key = 0; // its okay. (using the origin for sc loops' co-base) 
-    int historyKeyframeSearchNum = 25; // TODO move to yaml 
+    int historyKeyframeSearchNum = 1; // TODO move to yaml 
 
     source_sess.loopFindNearKeyframesCentralCoord(cureKeyframe, loop_idx_source_session, 0);
     target_sess.loopFindNearKeyframesCentralCoord(targetKeyframe, loop_idx_target_session, historyKeyframeSearchNum); 

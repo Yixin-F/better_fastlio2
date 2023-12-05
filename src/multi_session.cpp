@@ -51,7 +51,7 @@ int main(int argc, char** argv){
         if((t > iteration) && (t <= iteration + 2)){
             std::cout << "----------  rs estimate -----------" << std::endl;
             bool toOpt = multi_session.addRSloops();
-            if(toOpt && (t <= iteration + 2)){
+            if(toOpt){
                 multi_session.optimizeMultisesseionGraph(toOpt, t); // optimize the graph with existing edges + SC loop edges + RS loop edges
                 // multi_session.publish();
             }
