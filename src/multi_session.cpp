@@ -60,7 +60,8 @@ int main(int argc, char** argv){
         t = t + 1;
         rate.sleep();
     }    
-        
+    
+    std::cout << "******** data saver ************" << std::endl;
     multi_session.writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
     std::string aftPose = sessions_dir + save_directory + "aft_tansformation.pcd";
     pcl::io::savePCDFileASCII(aftPose, *multi_session.sessions_.at(multi_session.source_sess_idx).cloudKeyPoses6D);

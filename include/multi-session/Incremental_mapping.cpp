@@ -397,10 +397,8 @@ void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt, int ite
         return;
 
     isam->update(gtSAMgraph, initialEstimate);
-
-    // set it when ros::ok()
     isam->update();
-
+    // isam->update();
     isamCurrentEstimate = isam->calculateEstimate(); // must be followed by update 
 
     gtSAMgraph.resize(0);
@@ -435,7 +433,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPVirtu
     targetKeyframe.all_cloud = targetKeyframeCloud;
 
     int base_key = 0; // its okay. (using the origin for sc loops' co-base) 
-    int historyKeyframeSearchNum = 1; // TODO move to yaml 
+    int historyKeyframeSearchNum = 2; // TODO move to yaml 
 
     source_sess.loopFindNearKeyframesLocalCoord(cureKeyframe, loop_idx_source_session, 0);
     target_sess.loopFindNearKeyframesLocalCoord(targetKeyframe, loop_idx_target_session, historyKeyframeSearchNum); 
@@ -443,7 +441,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPVirtu
 
     // ICP Settings
     pcl::IterativeClosestPoint<PointType, PointType> icp;
-    icp.setMaxCorrespondenceDistance(150); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
+    icp.setMaxCorrespondenceDistance(30); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
     icp.setMaximumIterations(10);
     icp.setTransformationEpsilon(1e-6);
     icp.setEuclideanFitnessEpsilon(1e-6);
@@ -493,7 +491,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPGloba
     targetKeyframe.all_cloud = targetKeyframeCloud;
 
     int base_key = 0; // its okay. (using the origin for sc loops' co-base) 
-    int historyKeyframeSearchNum = 1; // TODO move to yaml 
+    int historyKeyframeSearchNum = 2; // TODO move to yaml 
 
     source_sess.loopFindNearKeyframesCentralCoord(cureKeyframe, loop_idx_source_session, 0);
     target_sess.loopFindNearKeyframesCentralCoord(targetKeyframe, loop_idx_target_session, historyKeyframeSearchNum); 
@@ -501,7 +499,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPGloba
 
     // ICP Settings
     pcl::IterativeClosestPoint<PointType, PointType> icp;
-    icp.setMaxCorrespondenceDistance(150); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
+    icp.setMaxCorrespondenceDistance(30); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
     icp.setMaximumIterations(10);
     icp.setTransformationEpsilon(1e-6);
     icp.setEuclideanFitnessEpsilon(1e-6);
@@ -1009,11 +1007,20 @@ void MultiSession::IncreMapping::visualizeLoopClosure()
 }
 
 void MultiSession::IncreMapping::loadCentralMap(){
-    std::string name = sessions_dir_ + central_sess_name_ + "globalMap.pcd";
-    if(pcl::io::loadPCDFile(name, *centralMap_) == 0){
+    std::string name = sessions_dir_ + central_sess_name_ + "/globalMap.pcd";
+    pcl::PointCloud<pcl::PointXYZI>::Ptr map(new pcl::PointCloud<pcl::PointXYZI>());
+    if(pcl::io::loadPCDFile<pcl::PointXYZI>(name, *map) != 1){
         std::cerr << "cannot load cental map" << std::endl;
         ros::shutdown();
     } 
+    for(size_t i = 0; i < map->points.size(); i++){
+        PointType pt;
+        pt.x = map->points[i].x;
+        pt.y = map->points[i].y;
+        pt.z = map->points[i].z;
+        centralMap_->points.emplace_back(pt);
+    }
+    std::cout << "load " << (sessions_dir_ + central_sess_name_ + "/globalMap.pcd") << std::endl;
     downSizeFilterPub.setInputCloud(centralMap_);
     downSizeFilterPub.filter(*centralMap_);
 }
@@ -1045,16 +1052,13 @@ void MultiSession::IncreMapping::publish(){
 
     visualizeLoopClosure();
 
-    for(auto& it : SCLoopIdxPairs_){
-        pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
-        reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "camera_init");
-    }
-
-    for(auto& it : RSLoopIdxPairs_){
-        pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
-        reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "camera_init");
-    }
+    // pcl::PointCloud<PointType>::Ptr relo_all(new pcl::PointCloud<PointType>());
+    // for(auto& it : SCLoopIdxPairs_){
+    //     *relo_all += *transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
+    // }
+    // for(auto& it : RSLoopIdxPairs_){
+    //     *relo_all += *transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
+    // }
+    // publishCloud(&pubReloCloud, relo_all, publishTimeStamp, "camera_init");
 }
 

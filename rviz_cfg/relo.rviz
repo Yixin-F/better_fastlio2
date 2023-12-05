@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /relo_cloud1/Status1
       Splitter Ratio: 0.6432291865348816
     Tree Height: 794
   - Class: rviz/Selection
@@ -26,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: central_trajectory
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -62,14 +61,14 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: ""
+      Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: central_map
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 1
@@ -79,7 +78,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -90,14 +89,14 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: ""
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: central_trajectory
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
@@ -111,21 +110,21 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
+        Max Value: 2.452545166015625
+        Min Value: -4.150185585021973
         Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: ""
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: registered_trajectory
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
@@ -148,7 +147,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: ""
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -163,13 +162,14 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /rs_loop
       Name: rs_loop
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -177,7 +177,8 @@ Visualization Manager:
       Marker Topic: /sc_loop
       Name: sc_loop
       Namespaces:
-        {}
+        loop_edges: true
+        loop_nodes: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -185,7 +186,7 @@ Visualization Manager:
     Background Color: 0; 0; 0
     Default Light: true
     Fixed Frame: camera_init
-    Frame Rate: 10
+    Frame Rate: 2
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -208,25 +209,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 90035.9296875
+      Distance: 207.39190673828125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 23.559988021850586
-        Y: -10.757072448730469
-        Z: -19.986183166503906
+        X: 11.455713272094727
+        Y: -72.33273315429688
+        Z: -34.08639144897461
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3347975015640259
+      Pitch: 1.089796543121338
       Target Frame: global
       Value: Orbit (rviz)
-      Yaw: 5.549015998840332
+      Yaw: 0.6158307790756226
     Saved: ~
 Window Geometry:
   Displays:
@@ -245,4 +246,4 @@ Window Geometry:
     collapsed: true
   Width: 1869
   X: 100
-  Y: 49
+  Y: 27

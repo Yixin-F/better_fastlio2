@@ -75,7 +75,7 @@ class IncreMapping
 
     ros::Time publishTimeStamp = ros::Time::now();
 
-    float loopFitnessScoreThreshold = 0.1;
+    float loopFitnessScoreThreshold = 0.2;
     static inline int num_sessions = 1; // session index should start from 1
 
     Sessions sessions_;
@@ -118,6 +118,7 @@ class IncreMapping
       
       centralMap_.reset(new pcl::PointCloud<PointType>());
       downSizeFilterPub.setLeafSize(pubSize, pubSize, pubSize);
+      // loadCentralMap();
 
       initOptimizer();
       initNoiseConstants();
