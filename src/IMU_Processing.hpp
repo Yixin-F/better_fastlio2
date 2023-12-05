@@ -27,7 +27,7 @@ public:
   void set_gyr_bias_cov(const V3D &b_g);
   void set_acc_bias_cov(const V3D &b_a);
   Eigen::Matrix<double, 12, 12> Q;
-  void Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI::Ptr pcl_un_);
+  void Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, pcl::PointCloud<PointType>::Ptr pcl_un_);
 
   ofstream fout_imu;       // imu参数输出文件
   V3D cov_acc;             // 加速度测量协方差
@@ -40,9 +40,9 @@ public:
 
 private:
   void IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N);
-  void UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI &pcl_in_out);
+  void UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, pcl::PointCloud<PointType> &pcl_in_out);
 
-  PointCloudXYZI::Ptr cur_pcl_un_;        // 当前帧点云未去畸变
+  pcl::PointCloud<PointType>::Ptr cur_pcl_un_;        // 当前帧点云未去畸变
   sensor_msgs::ImuConstPtr last_imu_;     // 上一帧imu数据
   deque<sensor_msgs::ImuConstPtr> v_imu_; // imu队列
   vector<Pose6D> IMUpose;                 // imu位姿信息(时间,加速度,角速度,速度,位置,旋转矩阵)
@@ -98,7 +98,7 @@ void ImuProcess::Reset()
   v_imu_.clear();
   IMUpose.clear();
   last_imu_.reset(new sensor_msgs::Imu());
-  cur_pcl_un_.reset(new PointCloudXYZI());
+  cur_pcl_un_.reset(new pcl::PointCloud<PointType>());
 }
 
 /**
@@ -236,7 +236,7 @@ void ImuProcess::IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 
  * @brief imu更新,正向传播,反向传播,点云去畸变
  *
  */
-void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI &pcl_out)
+void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, pcl::PointCloud<PointType> &pcl_out)
 {
   // 将最后一帧尾部的imu添加到当前帧头部的imu
   auto v_imu = meas.imu;                                            // 拿到当前的imu数据
@@ -390,7 +390,7 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
  * @brief IMU的主程序
  *
  */
-void ImuProcess::Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI::Ptr cur_pcl_un_)
+void ImuProcess::Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, pcl::PointCloud<PointType>::Ptr cur_pcl_un_)
 {
   double t1, t2;
   t1 = omp_get_wtime();

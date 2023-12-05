@@ -56,7 +56,7 @@ void Preprocess::set(bool feat_en, int lid_type, double bld, int pfilt_num)
  * @param msg livox激光雷达点云数据,格式为livox_ros_driver::CustomMsg
  * @param pcl_out 输出处理后的点云数据,格式为pcl::PointCloud<pcl::PointXYZINormal>
  */
-void Preprocess::process(const livox_ros_driver::CustomMsg::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out)
+void Preprocess::process(const livox_ros_driver::CustomMsg::ConstPtr &msg, pcl::PointCloud<PointType>::Ptr &pcl_out)
 {
   livox_handler(msg);
   *pcl_out = pl_surf; // 储存间隔采样点
@@ -68,7 +68,7 @@ void Preprocess::process(const livox_ros_driver::CustomMsg::ConstPtr &msg, Point
  * @param msg velodyne激光雷达点云数据,格式为sensor_msgs::PointCloud2
  * @param pcl_out 输出处理后的点云数据,格式为pcl::PointCloud<pcl::PointXYZINormal>
  */
-void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out)
+void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, pcl::PointCloud<PointType>::Ptr &pcl_out)
 {
   switch (lidar_type)
   {
@@ -296,7 +296,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 
     for (int j = 0; j < N_SCANS; j++)
     {
-      PointCloudXYZI &pl = pl_buff[j]; // points_line
+      pcl::PointCloud<PointType> &pl = pl_buff[j]; // points_line
       int linesize = pl.size();
       if (linesize < 2)
         continue;
@@ -756,7 +756,7 @@ void Preprocess::give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &t
   }
 }
 
-void Preprocess::pub_func(PointCloudXYZI &pl, const ros::Time &ct)
+void Preprocess::pub_func(pcl::PointCloud<PointType> &pl, const ros::Time &ct)
 {
   pl.height = 1;
   pl.width = pl.size();
@@ -767,7 +767,7 @@ void Preprocess::pub_func(PointCloudXYZI &pl, const ros::Time &ct)
 }
 
 // （line点云，点属性， 当前点索引，当前点索引，当前方向）
-int Preprocess::plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct)
+int Preprocess::plane_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct)
 {
   double group_dis = disA * types[i_cur].range + disB; // disB?? 用于限制特征点计算时，局部范围的阈值
   group_dis = group_dis * group_dis;
@@ -884,7 +884,7 @@ int Preprocess::plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, ui
   return 1;
 }
 
-bool Preprocess::edge_jump_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, Surround nor_dir)
+bool Preprocess::edge_jump_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i, Surround nor_dir)
 {
   if (nor_dir == 0)
   {

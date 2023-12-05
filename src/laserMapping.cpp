@@ -92,17 +92,17 @@ vector<PointVector> Nearest_Points;           // 每个点的最近点序列
 vector<double> extrinT(3, 0.0);               // 雷达相对于IMU的外参T
 vector<double> extrinR(9, 0.0);               // 雷达相对于IMU的外参R
 deque<double> time_buffer;                    // 激光雷达数据时间戳缓存队列
-deque<PointCloudXYZI::Ptr> lidar_buffer;      // 记录特征提取或间隔采样后的lidar(特征)数据
+deque<pcl::PointCloud<PointType>::Ptr> lidar_buffer;      // 记录特征提取或间隔采样后的lidar(特征)数据
 deque<sensor_msgs::Imu::ConstPtr> imu_buffer; // IMU数据缓存队列
 
-PointCloudXYZI::Ptr featsFromMap(new PointCloudXYZI());           // 提取地图中的特征点,ikdtree获得
-PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());        // 去畸变的点云,lidar系
-PointCloudXYZI::Ptr feats_down_body(new PointCloudXYZI());        // 畸变纠正后降采样的单帧点云,lidar系
-PointCloudXYZI::Ptr feats_down_world(new PointCloudXYZI());       // 畸变纠正后降采样的单帧点云,world系
-PointCloudXYZI::Ptr normvec(new PointCloudXYZI(100000, 1));       // 特征点在地图中对应点的,局部平面参数,world系
-PointCloudXYZI::Ptr laserCloudOri(new PointCloudXYZI(100000, 1)); // 畸变纠正后降采样的单帧点云,imu(body)系
-PointCloudXYZI::Ptr corr_normvect(new PointCloudXYZI(100000, 1)); // 对应点法相量
-PointCloudXYZI::Ptr _featsArray;                                  // ikdtree中,map需要移除的点云
+pcl::PointCloud<PointType>::Ptr featsFromMap(new pcl::PointCloud<PointType>());           // 提取地图中的特征点,ikdtree获得
+pcl::PointCloud<PointType>::Ptr feats_undistort(new pcl::PointCloud<PointType>());        // 去畸变的点云,lidar系
+pcl::PointCloud<PointType>::Ptr feats_down_body(new pcl::PointCloud<PointType>());        // 畸变纠正后降采样的单帧点云,lidar系
+pcl::PointCloud<PointType>::Ptr feats_down_world(new pcl::PointCloud<PointType>());       // 畸变纠正后降采样的单帧点云,world系
+pcl::PointCloud<PointType>::Ptr normvec(new pcl::PointCloud<PointType>(100000, 1));       // 特征点在地图中对应点的,局部平面参数,world系
+pcl::PointCloud<PointType>::Ptr laserCloudOri(new pcl::PointCloud<PointType>(100000, 1)); // 畸变纠正后降采样的单帧点云,imu(body)系
+pcl::PointCloud<PointType>::Ptr corr_normvect(new pcl::PointCloud<PointType>(100000, 1)); // 对应点法相量
+pcl::PointCloud<PointType>::Ptr _featsArray;                                  // ikdtree中,map需要移除的点云
 
 pcl::VoxelGrid<PointType> downSizeFilterSurf; // 单帧内降采样使用voxel grid
 pcl::VoxelGrid<PointType> downSizeFilterMap;  // 未使用
@@ -301,7 +301,7 @@ void publish_frame_world_color(const ros::Publisher &pubLaserCloudColor)
         if (scan_pub_en) // 是否发布激光雷达数据
         {
             // 发布稠密点云还是降采样点云
-            PointCloudXYZI::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
+            pcl::PointCloud<PointType>::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
             sensor_msgs::PointCloud2 laserCloudFullResmsg;
 
             pcl::PointCloud<livox_ros::Point>::Ptr livox_color_ptr(new pcl::PointCloud<livox_ros::Point>); // 带颜色的点云
@@ -584,6 +584,62 @@ void addLoopFactor()
     aLoopIsClosed = true;
 }
 
+// TODO: update ikdtree for better visualization at a certain frequency
+void recontructIKdTree()
+{
+    if (updateKdtreeCount == 20)  
+    {
+        /*** if path is too large, the rviz will crash ***/
+        pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses(new pcl::KdTreeFLANN<PointType>());
+        pcl::PointCloud<PointType>::Ptr subMapKeyPoses(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr subMapKeyPosesDS(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr subMapKeyFrames(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr subMapKeyFramesDS(new pcl::PointCloud<PointType>());
+
+        // kdtree查找最近一帧关键帧相邻的关键帧集合
+        std::vector<int> pointSearchIndGlobalMap;
+        std::vector<float> pointSearchSqDisGlobalMap;
+        mtx.lock();
+        kdtreeGlobalMapPoses->setInputCloud(cloudKeyPoses3D);
+        kdtreeGlobalMapPoses->radiusSearch(cloudKeyPoses3D->back(), globalMapVisualizationSearchRadius, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap, 0);
+        mtx.unlock();
+
+        for (int i = 0; i < (int)pointSearchIndGlobalMap.size(); ++i)
+            subMapKeyPoses->push_back(cloudKeyPoses3D->points[pointSearchIndGlobalMap[i]]); // subMap的pose集合
+        // 降采样
+        pcl::VoxelGrid<PointType> downSizeFilterSubMapKeyPoses;
+        downSizeFilterSubMapKeyPoses.setLeafSize(globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity); // for global map visualization
+        downSizeFilterSubMapKeyPoses.setInputCloud(subMapKeyPoses);
+        downSizeFilterSubMapKeyPoses.filter(*subMapKeyPosesDS); // subMap poses  downsample
+        // 提取局部相邻关键帧对应的特征点云
+        for (int i = 0; i < (int)subMapKeyPosesDS->size(); ++i)
+        {
+            // 距离过大
+            if (pointDistance(subMapKeyPosesDS->points[i], cloudKeyPoses3D->back()) > globalMapVisualizationSearchRadius)
+                continue;
+            int thisKeyInd = (int)subMapKeyPosesDS->points[i].intensity;
+            // *globalMapKeyFrames += *transformPointCloud(cornerCloudKeyFrames[thisKeyInd],  &cloudKeyPoses6D->points[thisKeyInd]);
+            *subMapKeyFrames += *transformPointCloud(surfCloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]); //  fast_lio only use  surfCloud
+        }
+        // 降采样，发布
+        pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;      // for global map visualization
+        downSizeFilterGlobalMapKeyFrames.setLeafSize(globalMapVisualizationLeafSize, globalMapVisualizationLeafSize, globalMapVisualizationLeafSize); // for global map visualization
+        downSizeFilterGlobalMapKeyFrames.setInputCloud(subMapKeyFrames);
+        downSizeFilterGlobalMapKeyFrames.filter(*subMapKeyFramesDS);
+
+        // std::cout << "subMapKeyFramesDS sizes  =  " << subMapKeyFramesDS->points.size() << std::endl;
+
+        ikdtree.reconstruct(subMapKeyFramesDS->points);
+        updateKdtreeCount = 0;
+        ROS_INFO("Reconstructed  ikdtree ");
+        int featsFromMapNum = ikdtree.validnum();
+        kdtree_size_st = ikdtree.size();
+        std::cout << "featsFromMapNum  =  " << featsFromMapNum << "\t"
+                  << " kdtree_size_st   =  " << kdtree_size_st << std::endl;
+    }
+    updateKdtreeCount++;
+}
+
 /**
  * @brief
  * 设置当前帧为关键帧并执行因子图优化
@@ -669,62 +725,11 @@ void saveKeyFramesAndFactor()
     surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
     updatePath(thisPose6D); // 可视化update后的最新位姿
-}
 
-// TODO: update ikdtree for better visualization at a certain frequency
-void recontructIKdTree()
-{
-    if (updateKdtreeCount % 10 == 0)  
-    {
-        /*** if path is too large, the rviz will crash ***/
-        pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses(new pcl::KdTreeFLANN<PointType>());
-        pcl::PointCloud<PointType>::Ptr subMapKeyPoses(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr subMapKeyPosesDS(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr subMapKeyFrames(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr subMapKeyFramesDS(new pcl::PointCloud<PointType>());
-
-        // kdtree查找最近一帧关键帧相邻的关键帧集合
-        std::vector<int> pointSearchIndGlobalMap;
-        std::vector<float> pointSearchSqDisGlobalMap;
-        mtx.lock();
-        kdtreeGlobalMapPoses->setInputCloud(cloudKeyPoses3D);
-        kdtreeGlobalMapPoses->radiusSearch(cloudKeyPoses3D->back(), globalMapVisualizationSearchRadius, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap, 0);
-        mtx.unlock();
-
-        for (int i = 0; i < (int)pointSearchIndGlobalMap.size(); ++i)
-            subMapKeyPoses->push_back(cloudKeyPoses3D->points[pointSearchIndGlobalMap[i]]); // subMap的pose集合
-        // 降采样
-        pcl::VoxelGrid<PointType> downSizeFilterSubMapKeyPoses;
-        downSizeFilterSubMapKeyPoses.setLeafSize(globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity, globalMapVisualizationPoseDensity); // for global map visualization
-        downSizeFilterSubMapKeyPoses.setInputCloud(subMapKeyPoses);
-        downSizeFilterSubMapKeyPoses.filter(*subMapKeyPosesDS); // subMap poses  downsample
-        // 提取局部相邻关键帧对应的特征点云
-        for (int i = 0; i < (int)subMapKeyPosesDS->size(); ++i)
-        {
-            // 距离过大
-            if (pointDistance(subMapKeyPosesDS->points[i], cloudKeyPoses3D->back()) > globalMapVisualizationSearchRadius)
-                continue;
-            int thisKeyInd = (int)subMapKeyPosesDS->points[i].intensity;
-            // *globalMapKeyFrames += *transformPointCloud(cornerCloudKeyFrames[thisKeyInd],  &cloudKeyPoses6D->points[thisKeyInd]);
-            *subMapKeyFrames += *transformPointCloud(surfCloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]); //  fast_lio only use  surfCloud
-        }
-        // 降采样，发布
-        pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;      // for global map visualization
-        downSizeFilterGlobalMapKeyFrames.setLeafSize(globalMapVisualizationLeafSize, globalMapVisualizationLeafSize, globalMapVisualizationLeafSize); // for global map visualization
-        downSizeFilterGlobalMapKeyFrames.setInputCloud(subMapKeyFrames);
-        downSizeFilterGlobalMapKeyFrames.filter(*subMapKeyFramesDS);
-
-        // std::cout << "subMapKeyFramesDS sizes  =  " << subMapKeyFramesDS->points.size() << std::endl;
-
-        ikdtree.reconstruct(subMapKeyFramesDS->points);
-        updateKdtreeCount = 0;
-        ROS_INFO("Reconstructed  ikdtree ");
-        int featsFromMapNum = ikdtree.validnum();
-        kdtree_size_st = ikdtree.size();
-        std::cout << "featsFromMapNum  =  " << featsFromMapNum << "\t"
-                  << " kdtree_size_st   =  " << kdtree_size_st << std::endl;
+    // 清空局部map, reconstruct  ikdtree submap
+    if (recontructKdTree){
+        recontructIKdTree();
     }
-    updateKdtreeCount++;
 }
 
 // 更新因子图中所有变量节点的位姿,也就是所有历史关键帧的位姿,调整全局轨迹,重构ikdtree
@@ -756,10 +761,10 @@ void correctPoses()
             updatePath(cloudKeyPoses6D->points[i]);
         }
 
-        // 清空局部map, reconstruct  ikdtree submap
-        if (recontructKdTree){
-            recontructIKdTree();
-        }
+        // // 清空局部map, reconstruct  ikdtree submap
+        // if (recontructKdTree){
+        //     recontructIKdTree();
+        // }
         
         ROS_INFO("ISMA2 Update");
         aLoopIsClosed = false;
@@ -1176,7 +1181,7 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
         ROS_ERROR("lidar loop back, clear buffer");
         lidar_buffer.clear();
     }
-    PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
+    pcl::PointCloud<PointType>::Ptr ptr(new pcl::PointCloud<PointType>());
     p_pre->process(msg, ptr);                         // 点云预处理
     lidar_buffer.push_back(ptr);                      // 点云存入缓冲区
     time_buffer.push_back(msg->header.stamp.toSec()); // 时间存入缓冲区
@@ -1215,7 +1220,7 @@ void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
         printf("Self sync IMU and LiDAR, time diff is %.10lf \n", timediff_lidar_wrt_imu);
     }
 
-    PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
+    pcl::PointCloud<PointType>::Ptr ptr(new pcl::PointCloud<PointType>());
 
     p_pre->process(msg, ptr);                    // 点云预处理
     lidar_buffer.push_back(ptr);                 // 点云存入缓冲区
@@ -1252,7 +1257,7 @@ void livox_ros_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
         timediff_lidar_wrt_imu = last_timestamp_lidar + 0.1 - last_timestamp_imu; // ????
         printf("Self sync IMU and LiDAR, time diff is %.10lf \n", timediff_lidar_wrt_imu);
     }
-    PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
+    pcl::PointCloud<PointType>::Ptr ptr(new pcl::PointCloud<PointType>());
     p_pre->process(msg, ptr);                         // 点云预处理
     lidar_buffer.push_back(ptr);                      // 点云存入缓冲区
     time_buffer.push_back(msg->header.stamp.toSec()); // 时间存入缓冲区
@@ -1460,8 +1465,8 @@ void map_incremental()
     kdtree_incremental_time = omp_get_wtime() - st_time;
 }
 
-PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI(500000, 1)); // 创建一个点云用于存储等待发布的点云
-PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());         // 创建一个点云用于存储等待保存的点云
+pcl::PointCloud<PointType>::Ptr pcl_wait_pub(new pcl::PointCloud<PointType>(500000, 1)); // 创建一个点云用于存储等待发布的点云
+pcl::PointCloud<PointType>::Ptr pcl_wait_save(new pcl::PointCloud<PointType>());         // 创建一个点云用于存储等待保存的点云
 
 // 消息发布到world系
 void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
@@ -1469,9 +1474,9 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
     if (scan_pub_en) // 是否发布激光雷达数据
     {
         // 发布稠密点云还是降采样点云
-        PointCloudXYZI::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
+        pcl::PointCloud<PointType>::Ptr laserCloudFullRes(dense_pub_en ? feats_undistort : feats_down_body);
         int size = laserCloudFullRes->points.size();                      // 获取待转换点云的大小
-        PointCloudXYZI::Ptr laserCloudWorld(new PointCloudXYZI(size, 1)); // W坐标系的点云
+        pcl::PointCloud<PointType>::Ptr laserCloudWorld(new pcl::PointCloud<PointType>(size, 1)); // W坐标系的点云
         // 转换到world系
         for (int i = 0; i < size; i++)
         {
@@ -1492,8 +1497,8 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
     if (map_save_en)
     {
         int size = feats_undistort->points.size();
-        PointCloudXYZI::Ptr laserCloudWorld(
-            new PointCloudXYZI(size, 1));
+        pcl::PointCloud<PointType>::Ptr laserCloudWorld(
+            new pcl::PointCloud<PointType>(size, 1));
 
         for (int i = 0; i < size; i++)
         {
@@ -1508,7 +1513,7 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
 void publish_frame_body(const ros::Publisher &pubLaserCloudFull_body)
 {
     int size = feats_undistort->points.size();
-    PointCloudXYZI::Ptr laserCloudIMUBody(new PointCloudXYZI(size, 1)); // imu(body)系的点云转换到imu(body)系
+    pcl::PointCloud<PointType>::Ptr laserCloudIMUBody(new pcl::PointCloud<PointType>(size, 1)); // imu(body)系的点云转换到imu(body)系
     for (int i = 0; i < size; i++)
     {
         RGBpointBodyLidarToIMU(&feats_undistort->points[i], &laserCloudIMUBody->points[i]);
@@ -1524,8 +1529,8 @@ void publish_frame_body(const ros::Publisher &pubLaserCloudFull_body)
 
 void publish_effect_world(const ros::Publisher &pubLaserCloudEffect)
 {
-    PointCloudXYZI::Ptr laserCloudWorld(
-        new PointCloudXYZI(effct_feat_num, 1));
+    pcl::PointCloud<PointType>::Ptr laserCloudWorld(
+        new pcl::PointCloud<PointType>(effct_feat_num, 1));
     for (int i = 0; i < effct_feat_num; i++)
     {
         RGBpointBodyToWorld(&laserCloudOri->points[i],
@@ -2094,7 +2099,7 @@ int main(int argc, char **argv)
     FOV_DEG = (fov_deg + 10.0) > 179.9 ? 179.9 : (fov_deg + 10.0); // 视场角度
     HALF_FOV_COS = cos((FOV_DEG)*0.5 * PI_M / 180.0);              // 视场角度半值的cos值
 
-    _featsArray.reset(new PointCloudXYZI()); // 特征点数组
+    _featsArray.reset(new pcl::PointCloud<PointType>()); // 特征点数组
 
     // 将数组point_selected_surf内元素的值全部设为true,数组point_selected_surf用于选择平面点
     memset(point_selected_surf, true, sizeof(point_selected_surf));
@@ -2403,7 +2408,7 @@ int main(int argc, char **argv)
     // save sc and keyframe
      // - SINGLE_SCAN_FULL: using downsampled original point cloud (/full_cloud_projected + downsampling)
     // - MULTI_SCAN_FEAT: using NearKeyframes (because a MulRan scan does not have beyond region, so to solve this issue ... )
-    const SCInputType sc_input_type = SCInputType::SINGLE_SCAN_FULL; // TODO: change this 
+    const SCInputType sc_input_type = SCInputType::SINGLE_SCAN_FULL; // TODO: change this in ymal
     bool soMany = false;
     std::cout << "save sc and keyframe" << std::endl;
 

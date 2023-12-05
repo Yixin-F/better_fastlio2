@@ -137,7 +137,6 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
     std::vector<std::pair<int, std::string>> pcd_names;
     for(auto& _pcd : fs::directory_iterator(pcd_dir)) {
         std::string pcd_name = _pcd.path().filename();
-
         std::stringstream pcd_name_stream {pcd_name};
         std::string pcd_idx_str; 
         getline(pcd_name_stream, pcd_idx_str, ',');
@@ -153,9 +152,22 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
     // load PCDs
     int num_pcd_loaded = 0;
     for (auto const& _pcd_name: pcd_names){
-        // std::cout << " load " << _pcd_name.second << std::endl;
-        pcl::PointCloud<PointType>::Ptr thisCloudFrame(new pcl::PointCloud<PointType>());
-        pcl::io::loadPCDFile<PointType> (_pcd_name.second, *thisCloudFrame);
+        std::cout << " load " << _pcd_name.second << std::endl;
+        pcl::PointCloud<PointType>::Ptr thisCloudFrame(new pcl::PointCloud<PointType>());   
+        // pcl::io::loadPCDFile<PointType> (_pcd_name.second, *thisCloudFrame);  // TODO: cannot load PointType
+        pcl::PointCloud<pcl::PointXYZI>::Ptr thisCloudFrame_(new pcl::PointCloud<pcl::PointXYZI>());   
+        pcl::io::loadPCDFile<pcl::PointXYZI> (_pcd_name.second, *thisCloudFrame_);
+        // std::cout << 1 << std::endl;
+        // thisCloudFrame = convertPointXYZI(thisCloudFrame_);
+        // std::cout << 1 << std::endl;
+        for(int i = 0; i < thisCloudFrame_->points.size(); i++){
+            PointType pt;
+            pt.x = thisCloudFrame_->points[i].x;
+            pt.y = thisCloudFrame_->points[i].y;
+            pt.z = thisCloudFrame_->points[i].z;
+            thisCloudFrame->points.emplace_back(pt);
+        }
+        // std::cout << 1 << std::endl;
         KeyFrame thisKeyFrame;
         thisKeyFrame.all_cloud = thisCloudFrame;
         cloudKeyFrames.push_back(thisKeyFrame);
@@ -189,12 +201,11 @@ void MultiSession::Session::loadSessionScanContextDescriptors(){
 
     // filesort
     std::sort(scd_names.begin(), scd_names.end(), pairIntAndStringSort);   // easy 
-    std::cout << scd_dir << std::endl;
     
     // load SCDs
     int num_scd_loaded = 0;
     for (auto const& _scd_name: scd_names){
-        // std::cout << "load a SCD: " << _scd_name.second << endl;
+        std::cout << "load a SCD: " << _scd_name.second << endl;
         Eigen::MatrixXd scd = readSCD(_scd_name.second);
         cloudKeyFrames[num_scd_loaded].scv_od = scd;  // TODO: how to use as scv-od
         scManager.saveScancontextAndKeys(scd);
@@ -400,9 +411,9 @@ void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt, int ite
 
     if(is_display_debug_msgs_) {
         std::cout << "***** variable values after optimization " << iteration << " *****" << std::endl;
-        std::cout << std::endl;
-        isamCurrentEstimate.print("Current estimate: ");
-        std::cout << std::endl;
+        // std::cout << std::endl;
+        // isamCurrentEstimate.print("Current estimate: ");
+        // std::cout << std::endl;
         // std::ofstream os("/home/user/Documents/catkin2021/catkin_ltmapper/catkin_ltmapper_dev/src/ltmapper/data/3d/kaist/PoseGraphExample.dot");
         // gtSAMgraph.saveGraph(os, isamCurrentEstimate);
     }
@@ -433,7 +444,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPVirtu
     // ICP Settings
     pcl::IterativeClosestPoint<PointType, PointType> icp;
     icp.setMaxCorrespondenceDistance(150); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
-    icp.setMaximumIterations(100);
+    icp.setMaximumIterations(10);
     icp.setTransformationEpsilon(1e-6);
     icp.setEuclideanFitnessEpsilon(1e-6);
     icp.setRANSACIterations(0);
@@ -491,7 +502,7 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPGloba
     // ICP Settings
     pcl::IterativeClosestPoint<PointType, PointType> icp;
     icp.setMaxCorrespondenceDistance(150); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter 
-    icp.setMaximumIterations(100);
+    icp.setMaximumIterations(10);
     icp.setTransformationEpsilon(1e-6);
     icp.setEuclideanFitnessEpsilon(1e-6);
     icp.setRANSACIterations(0);
@@ -1003,31 +1014,47 @@ void MultiSession::IncreMapping::loadCentralMap(){
         std::cerr << "cannot load cental map" << std::endl;
         ros::shutdown();
     } 
+    downSizeFilterPub.setInputCloud(centralMap_);
+    downSizeFilterPub.filter(*centralMap_);
 }
 
 void MultiSession::IncreMapping::publish(){
-    publishCloud(&pubCentralGlobalMap, centralMap_, publishTimeStamp, "cameara_init");
+    publishCloud(&pubCentralGlobalMap, centralMap_, publishTimeStamp, "camera_init");
 
     pcl::PointCloud<PointType>::Ptr traj_central(new pcl::PointCloud<PointType>());
-    traj_central = convertPointTypePose(sessions_.at(target_sess_idx).cloudKeyPoses6D);
-    publishCloud(&pubCentralTrajectory, traj_central, publishTimeStamp, "cameara_init");
+    for(int i = 0; i < sessions_.at(target_sess_idx).cloudKeyPoses6D->points.size(); i++){
+        PointType pt;
+        pt.x = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[i].x;
+        pt.y = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[i].y;
+        pt.z = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[i].z;
+        traj_central->points.emplace_back(pt);
+    }
+    // traj_central = convertPointTypePose(sessions_.at(target_sess_idx).cloudKeyPoses6D);
+    publishCloud(&pubCentralTrajectory, traj_central, publishTimeStamp, "camera_init");
 
     pcl::PointCloud<PointType>::Ptr traj_regis(new pcl::PointCloud<PointType>());
-    traj_regis = convertPointTypePose(sessions_.at(source_sess_idx).cloudKeyPoses6D);
-    publishCloud(&pubRegisteredTrajectory, traj_regis, publishTimeStamp, "cameara_init");
+    for(int i = 0; i < sessions_.at(source_sess_idx).cloudKeyPoses6D->points.size(); i++){
+        PointType pt;
+        pt.x = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[i].x;
+        pt.y = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[i].y;
+        pt.z = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[i].z;
+        traj_regis->points.emplace_back(pt);
+    }
+    // traj_regis = convertPointTypePose(sessions_.at(source_sess_idx).cloudKeyPoses6D);
+    publishCloud(&pubRegisteredTrajectory, traj_regis, publishTimeStamp, "camera_init");
 
     visualizeLoopClosure();
 
     for(auto& it : SCLoopIdxPairs_){
         pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
         reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "cameara_init");
+        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "camera_init");
     }
 
     for(auto& it : RSLoopIdxPairs_){
         pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>());
         reloCloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "cameara_init");
+        publishCloud(&pubReloCloud, reloCloud, publishTimeStamp, "camera_init");
     }
 }
 

@@ -34,24 +34,26 @@ int main(int argc, char** argv){
     multi_session.detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
     multi_session.addSCloops();
 
+    ROS_INFO("\033[1;32m----> publish map.\033[0m");
     int t = 1;
     ros::Rate rate(0.2);
     bool status = ros::ok();
     while(status){
         ros::spinOnce();
+        multi_session.publish();
         
         if(t <= iteration){
             std::cout << "----------  sc estimate -----------" << std::endl;
             multi_session.optimizeMultisesseionGraph(true, t); // optimize the graph with existing edges + SC loop edges
-            multi_session.publish();
+            // multi_session.publish();
         }
-
-        if(t > iteration){
+        
+        if((t > iteration) && (t <= iteration + 2)){
             std::cout << "----------  rs estimate -----------" << std::endl;
             bool toOpt = multi_session.addRSloops();
-            if(toOpt && (t <= iteration * 2)){
+            if(toOpt && (t <= iteration + 2)){
                 multi_session.optimizeMultisesseionGraph(toOpt, t); // optimize the graph with existing edges + SC loop edges + RS loop edges
-                multi_session.publish();
+                // multi_session.publish();
             }
         }
 
@@ -60,6 +62,8 @@ int main(int argc, char** argv){
     }    
         
     multi_session.writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
+    std::string aftPose = sessions_dir + save_directory + "aft_tansformation.pcd";
+    pcl::io::savePCDFileASCII(aftPose, *multi_session.sessions_.at(multi_session.source_sess_idx).cloudKeyPoses6D);
 
     return 0;
 }

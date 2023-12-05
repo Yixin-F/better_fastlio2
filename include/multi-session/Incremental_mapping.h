@@ -73,9 +73,9 @@ class IncreMapping
     
     bool is_display_debug_msgs_ = true;
 
-    ros::Time publishTimeStamp = ros::Time().fromSec(double(1999.1217));
+    ros::Time publishTimeStamp = ros::Time::now();
 
-    float loopFitnessScoreThreshold = 0.7;
+    float loopFitnessScoreThreshold = 0.1;
     static inline int num_sessions = 1; // session index should start from 1
 
     Sessions sessions_;

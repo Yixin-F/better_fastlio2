@@ -137,13 +137,13 @@ public:
   ~Preprocess(); // 析构函数
 
   // 对Livox自定义Msg格式的激光雷达数据进行处理
-  void process(const livox_ros_driver::CustomMsg::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out);
+  void process(const livox_ros_driver::CustomMsg::ConstPtr &msg, pcl::PointCloud<PointType>::Ptr &pcl_out);
   // 对ros的Msg格式的激光雷达数据进行处理
-  void process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointCloudXYZI::Ptr &pcl_out);
+  void process(const sensor_msgs::PointCloud2::ConstPtr &msg, pcl::PointCloud<PointType>::Ptr &pcl_out);
   void set(bool feat_en, int lid_type, double bld, int pfilt_num);
 
-  PointCloudXYZI pl_full, pl_corn, pl_surf;                         // 全部点、边缘点、平面点
-  PointCloudXYZI pl_buff[128];                                      // maximum 128 line lidar
+  pcl::PointCloud<PointType> pl_full, pl_corn, pl_surf;                         // 全部点、边缘点、平面点
+  pcl::PointCloud<PointType> pl_buff[128];                                      // maximum 128 line lidar
   vector<orgtype> typess[128];                                      // maximum 128 line lidar
   int lidar_type, livox_type, point_filter_num, N_SCANS, SCAN_RATE; // 雷达类型、livox数据类型,采样间隔、扫描线数、扫描频率
   double blind;                                                     // 最小距离阈值(盲区),小于此阈值不计算特征
@@ -154,11 +154,11 @@ private:
   void livox_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg); // 用于对Livox激光雷达数据进行处理
   void livoxros_handler(const sensor_msgs::PointCloud2::ConstPtr &msg); // 用于对velodyne激光雷达数据进行处理
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg); // 用于对velodyne激光雷达数据进行处理
-  void give_feature(PointCloudXYZI &pl, vector<orgtype> &types);        // 当前扫描线点云，扫描点属性
-  void pub_func(PointCloudXYZI &pl, const ros::Time &ct);
-  int plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
-  bool small_plane(const PointCloudXYZI &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct);
-  bool edge_jump_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, Surround nor_dir);
+  void give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types);        // 当前扫描线点云，扫描点属性
+  void pub_func(pcl::PointCloud<PointType> &pl, const ros::Time &ct);
+  int plane_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
+  bool small_plane(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i_cur, uint &i_nex, Eigen::Vector3d &curr_direct);
+  bool edge_jump_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i, Surround nor_dir);
 
   int group_size; // 计算平面特征时需要的最少局部点数
   double disA, disB, inf_bound;

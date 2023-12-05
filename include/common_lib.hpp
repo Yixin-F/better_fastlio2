@@ -151,7 +151,7 @@ namespace fs=std::experimental::filesystem;
 
 typedef fast_lio_sam::Pose6D Pose6D;
 typedef pcl::PointXYZINormal PointType;
-typedef pcl::PointCloud<PointType> PointCloudXYZI; // just for fast-lio2
+// typedef pcl::PointCloud<PointType> PointCloudXYZI; // just for fast-lio2
 typedef vector<PointType, Eigen::aligned_allocator<PointType>>  PointVector;
 typedef Vector3d V3D;
 typedef Matrix3d M3D;
@@ -240,11 +240,11 @@ struct MeasureGroup     // Lidar data and imu dates for the curent process
     MeasureGroup()
     {
         lidar_beg_time = 0.0;
-        this->lidar.reset(new PointCloudXYZI());
+        this->lidar.reset(new pcl::PointCloud<PointType>());
     };
     double lidar_beg_time; // lidar data begin time in the MeasureGroup
     double lidar_end_time; // lidar data end time in the MeasureGroup
-    PointCloudXYZI::Ptr lidar;
+    pcl::PointCloud<PointType>::Ptr lidar;
     deque<sensor_msgs::Imu::ConstPtr> imu;
 };
 
@@ -647,20 +647,36 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     return cloudOut;
 }
 
-pcl::PointCloud<PointType>::Ptr convertPointTypePose(const Trajectory& pose_){
-    pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
+// // cannot use
+// pcl::PointCloud<PointType>::Ptr convertPointTypePose(const Trajectory& pose_){
+//     pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
 
-    int numberOfCores = 8; // TODO: move to yaml
-    #pragma omp parallel for num_threads(numberOfCores)
-    for(int i = 0; i < pose_->points.size(); i++){
-        PointType pt;
-        pt.x = pose_->points[i].x;
-        pt.y = pose_->points[i].y;
-        pt.z = pose_->points[i].z;
-        convert->points.emplace_back(pt);
-    }
-    return convert;
-}
+//     int numberOfCores = 8; // TODO: move to yaml
+//     #pragma omp parallel for num_threads(numberOfCores)
+//     for(int i = 0; i < pose_->points.size(); i++){
+//         PointType pt;
+//         pt.x = pose_->points[i].x;
+//         pt.y = pose_->points[i].y;
+//         pt.z = pose_->points[i].z;
+//         convert->points.emplace_back(pt);
+//     }
+//     return convert;
+// }
+
+// pcl::PointCloud<PointType>::Ptr convertPointXYZI(const pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud_){
+//     pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
+
+//     int numberOfCores = 8; // TODO: move to yaml
+//     #pragma omp parallel for num_threads(numberOfCores)
+//     for(int i = 0; i < cloud_->points.size(); i++){
+//         PointType pt;
+//         pt.x = cloud_->points[i].x;
+//         pt.y = cloud_->points[i].y;
+//         pt.z = cloud_->points[i].z;
+//         convert->points.emplace_back(pt);
+//     }
+//     return convert;
+// }
 
 std::vector<std::pair<double, int>> sortVecWithIdx(const std::vector<double>& arr) 
 { 
