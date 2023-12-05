@@ -17,15 +17,15 @@ int main(int argc, char** argv){
     nh.param<std::string>("multi_session/save_directory", save_directory, " ");
     nh.param<int>("multi_session/iteration", iteration, 5);
 
-    ROS_INFO("\033[1;32m----> multi-sessionstarts.\033[0m");
+    ROS_INFO("\033[1;32m----> multi-session starts.\033[0m");
     
     // fsmkdir(sessions_dir);
     // fsmkdir(std::string(sessions_dir + central_sess_name));
     // fsmkdir(std::string(sessions_dir + query_sess_name));
 
-    fsmkdir(std::string(sessions_dir + save_directory));
-
     MultiSession::IncreMapping multi_session(sessions_dir, central_sess_name, query_sess_name, save_directory);
+
+    fsmkdir(std::string(sessions_dir + save_directory));  // aft instance of multi-session
 
     std::cout << "----------  current estimate -----------" << std::endl;
     multi_session.optimizeMultisesseionGraph(true, 0); // optimize the graph with existing edges 

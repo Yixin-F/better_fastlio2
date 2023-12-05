@@ -2148,7 +2148,7 @@ int main(int argc, char **argv)
     // std::cout << repub_topic << std::endl;
     ros::Subscriber sub_pcl = p_pre->lidar_type == LIVOX ? (p_pre->livox_type == LIVOX_CUS ? nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : nh.subscribe(repub_topic, 200000, livox_ros_cbk)) : nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
-    ros::Subscriber subLivoxMsg = nh.subscribe<livox_ros_driver::CustomMsg>(lid_topic, 100000, LivoxRepubCallback);
+    // ros::Subscriber subLivoxMsg = nh.subscribe<livox_ros_driver::CustomMsg>(lid_topic, 100000, LivoxRepubCallback);
     
     if (camera_en){
         image_transport::ImageTransport it(nh);
@@ -2432,6 +2432,8 @@ int main(int argc, char **argv)
         writeSCD(scd_path  + curr_scd_node_idx + ".scd", curr_scd);
 
         string all_points_dir(pcd_path + string(curr_scd_node_idx) + ".pcd");
+        save_cloud->width = save_cloud->points.size();
+        save_cloud->height = 1;
         pcl::io::savePCDFileASCII(all_points_dir, *save_cloud);
     }
 

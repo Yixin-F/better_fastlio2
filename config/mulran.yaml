@@ -53,7 +53,7 @@ mapping:
 ikdtree:
     max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    filter_size_map_min: 0.2
+    filter_size_map_min: 0.4
 
 loop:
     loopClosureEnableFlag: true
@@ -73,11 +73,11 @@ segment:
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
 visualization:
     globalMapVisualizationSearchRadius: 10.0
     globalMapVisualizationPoseDensity: 5
     globalMapVisualizationLeafSize: 0.5
-    visulize_IkdtreeMap: true
+    visulize_IkdtreeMap: false

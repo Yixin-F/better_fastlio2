@@ -1,9 +1,9 @@
 multi_session:
 
-  sessions_dir: "/home/fyx/fastlio2/src/" 
+  sessions_dir: "/home/fyx/fastlio2/src/sessions/" 
 
-  central_sess_name: "01/" # should be same as the directory name of that session
-  query_sess_name: "02/" # should be same as the directory name of that session
+  central_sess_name: "01" # should be same as the directory name of that session
+  query_sess_name: "02" # should be same as the directory name of that session
   
   save_directory: "0102/" 
 

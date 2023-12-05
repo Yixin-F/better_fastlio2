@@ -1,0 +1,14 @@
+<launch>
+	<!-- Launch file for Livox Horizon LiDAR -->
+
+	<arg name="rviz" default="true" />
+
+	<rosparam command="load" file="$(find fast_lio_sam)/config/mulran.yaml" />
+
+	<node pkg="fast_lio_sam" type="fastlio_sam_mapping" name="laserMapping" output="screen" />
+
+	<group if="$(arg rviz)">
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/loam_livox.rviz" />
+	</group>
+
+</launch>

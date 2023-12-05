@@ -23,10 +23,10 @@ MultiSession::Session::Session(int _idx, std::string _name, std::string _session
     allocateMemory();
     
     loadSessionGraph();
-    
-    loadSessionScanContextDescriptors();
-    loadSessionKeyframePointclouds();
 
+    loadSessionKeyframePointclouds();
+    loadSessionScanContextDescriptors();
+    
     const float kICPFilterSize = 0.2; // TODO move to yaml 
     downSizeFilterICP.setLeafSize(kICPFilterSize, kICPFilterSize, kICPFilterSize);
 } // ctor
@@ -131,7 +131,7 @@ void MultiSession::Session::loopFindNearKeyframesLocalCoord(KeyFrame& nearKeyfra
 
 // load pointcloud
 void MultiSession::Session::loadSessionKeyframePointclouds(){
-    std::string pcd_dir = session_dir_path_ + "/Scans/";
+    std::string pcd_dir = session_dir_path_ + "/PCDs/";
 
     // parse names (un-sorted)
     std::vector<std::pair<int, std::string>> pcd_names;
@@ -172,7 +172,7 @@ void MultiSession::Session::loadSessionKeyframePointclouds(){
 // load sc
 void MultiSession::Session::loadSessionScanContextDescriptors(){
     std::string scd_dir = session_dir_path_ + "/SCDs/";
-    
+
     // parse names (un-sorted)
     std::vector<std::pair<int, std::string>> scd_names;
     for(auto& _scd : fs::directory_iterator(scd_dir)){
@@ -189,6 +189,7 @@ void MultiSession::Session::loadSessionScanContextDescriptors(){
 
     // filesort
     std::sort(scd_names.begin(), scd_names.end(), pairIntAndStringSort);   // easy 
+    std::cout << scd_dir << std::endl;
     
     // load SCDs
     int num_scd_loaded = 0;
@@ -501,7 +502,6 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPGloba
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result);
  
-    // giseop 
     // TODO icp align with initial 
 
     if (icp.hasConverged() == false || icp.getFitnessScore() > loopFitnessScoreThreshold) {
@@ -840,9 +840,10 @@ void MultiSession::IncreMapping::addSessionToCentralGraph(const Session& _sess){
 
 void MultiSession::IncreMapping::loadAllSessions() {
     // pose 
-    ROS_INFO_STREAM("\033[1;32m Load sessions' pose dasa from: " << sessions_dir_ << "\033[0m");
+    ROS_INFO_STREAM("\033[1;32m Load sessions' pose data from: " << sessions_dir_ << "\033[0m");
     for(auto& _session_entry : fs::directory_iterator(sessions_dir_)) {
         std::string session_name = _session_entry.path().filename();        
+        // std::cout << session_name << " " << central_sess_name_ << std::endl;
         if( !isTwoStringSame(session_name, central_sess_name_) & !isTwoStringSame(session_name, query_sess_name_) ) {
             continue; // jan. 2021. currently designed for two-session ver. (TODO: be generalized for N-session co-optimization)
         }
