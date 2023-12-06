@@ -87,6 +87,7 @@ class IncreMapping
     std::vector<std::pair<int, KeyFrame>> reloKeyFrames;
 
     pcl::PointCloud<PointType>::Ptr centralMap_;
+    pcl::PointCloud<PointType>::Ptr regisMap_;
 
     float pubSize = 1.0;
     pcl::VoxelGrid<PointType> downSizeFilterPub;
@@ -123,6 +124,7 @@ class IncreMapping
       fsmkdir(std::string(sessions_dir + save_directory));  // aft instance of multi-session
       
       centralMap_.reset(new pcl::PointCloud<PointType>());
+      regisMap_.reset(new pcl::PointCloud<PointType>());
       traj_central.reset(new pcl::PointCloud<PointType>());
       traj_regis.reset(new pcl::PointCloud<PointType>());
       downSizeFilterPub.setLeafSize(pubSize, pubSize, pubSize);

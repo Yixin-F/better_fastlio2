@@ -344,7 +344,12 @@ void MultiSession::IncreMapping::run( int iteration ){
     std::string aftPose2 = sessions_dir_ + save_directory_ + "aft_tansformation2.pcd";
     pcl::io::savePCDFileASCII(aftPose2, *sessions_.at(source_sess_idx).cloudKeyPoses6D);
 
-    getReloKeyFrames();
+    getReloKeyFrames();  // get relo clouds
+
+    std::string aftMap2 = sessions_dir_ + save_directory_ + "aft_map2.pcd";
+    downSizeFilterPub.setInputCloud(regisMap_);
+    downSizeFilterPub.filter(*regisMap_);
+    pcl::io::savePCDFileASCII(aftMap2, *regisMap_);
 
     std::cout << "save all optimization files" << std::endl;
 }
@@ -1051,6 +1056,7 @@ void MultiSession::IncreMapping::getReloKeyFrames(){
     for(auto& it : reloKeyFrames){
         it.second.all_cloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.first].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.first]);
         it.second.scv_od = sessions_.at(source_sess_idx).cloudKeyFrames[it.first].scv_od;
+        *regisMap_ += *it.second.all_cloud;
     }
 
     for(int i = 0; i < sessions_.at(target_sess_idx).cloudKeyPoses6D->points.size(); i++){

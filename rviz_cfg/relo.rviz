@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: central_trajectory
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -61,7 +61,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: false
       Invert Rainbow: false
@@ -145,14 +145,14 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: ""
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: relo_cloud
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
@@ -168,8 +168,7 @@ Visualization Manager:
       Marker Topic: /rs_loop
       Name: rs_loop
       Namespaces:
-        loop_edges: true
-        loop_nodes: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -177,8 +176,7 @@ Visualization Manager:
       Marker Topic: /sc_loop
       Name: sc_loop
       Namespaces:
-        loop_edges: true
-        loop_nodes: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -209,25 +207,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 207.39190673828125
+      Distance: 291.3706970214844
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 11.455713272094727
-        Y: -72.33273315429688
-        Z: -34.08639144897461
+        X: 20.830787658691406
+        Y: -48.7519645690918
+        Z: -45.188907623291016
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.089796543121338
+      Pitch: 1.1097965240478516
       Target Frame: global
       Value: Orbit (rviz)
-      Yaw: 0.6158307790756226
+      Yaw: 0.7758307456970215
     Saved: ~
 Window Geometry:
   Displays:
@@ -245,5 +243,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1869
-  X: 100
-  Y: 27
+  X: 97
+  Y: 153
