@@ -18,53 +18,26 @@ int main(int argc, char** argv){
     nh.param<int>("multi_session/iteration", iteration, 5);
 
     ROS_INFO("\033[1;32m----> multi-session starts.\033[0m");
-    
-    // fsmkdir(sessions_dir);
-    // fsmkdir(std::string(sessions_dir + central_sess_name));
-    // fsmkdir(std::string(sessions_dir + query_sess_name));
-
     MultiSession::IncreMapping multi_session(sessions_dir, central_sess_name, query_sess_name, save_directory);
 
-    fsmkdir(std::string(sessions_dir + save_directory));  // aft instance of multi-session
-
-    std::cout << "----------  current estimate -----------" << std::endl;
-    multi_session.optimizeMultisesseionGraph(true, 0); // optimize the graph with existing edges 
-    multi_session.writeAllSessionsTrajectories(std::string("bfr_intersession_loops"));
-
-    multi_session.detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
-    multi_session.addSCloops();
-
-    ROS_INFO("\033[1;32m----> publish map.\033[0m");
-    int t = 1;
-    ros::Rate rate(0.2);
-    bool status = ros::ok();
-    while(status){
-        ros::spinOnce();
-        multi_session.publish();
-        
-        if(t <= iteration){
-            std::cout << "----------  sc estimate -----------" << std::endl;
-            multi_session.optimizeMultisesseionGraph(true, t); // optimize the graph with existing edges + SC loop edges
-            // multi_session.publish();
-        }
-        
-        if((t > iteration) && (t <= iteration + 2)){
-            std::cout << "----------  rs estimate -----------" << std::endl;
-            bool toOpt = multi_session.addRSloops();
-            if(toOpt){
-                multi_session.optimizeMultisesseionGraph(toOpt, t); // optimize the graph with existing edges + SC loop edges + RS loop edges
-                // multi_session.publish();
-            }
-        }
-
-        t = t + 1;
-        rate.sleep();
-    }    
+    ROS_INFO("\033[1;32m----> pose-graph optimization.\033[0m");
+    multi_session.run(iteration);  
     
-    std::cout << "******** data saver ************" << std::endl;
-    multi_session.writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
-    std::string aftPose = sessions_dir + save_directory + "aft_tansformation.pcd";
-    pcl::io::savePCDFileASCII(aftPose, *multi_session.sessions_.at(multi_session.source_sess_idx).cloudKeyPoses6D);
-
+    ROS_INFO("\033[1;32m----> publish cloud.\033[0m");
+    int it = multi_session.reloKeyFrames.size();
+    int i = 0;
+    ros::Rate rate(0.5);
+    while((ros::ok()) && (i < it)){
+        ros::spinOnce();
+        // publishCloud(&multi_session.pubCentralGlobalMap, multi_session.centralMap_, multi_session.publishTimeStamp, "camera_init");
+        publishCloud(&multi_session.pubCentralTrajectory, multi_session.traj_central, multi_session.publishTimeStamp, "camera_init");
+        publishCloud(&multi_session.pubRegisteredTrajectory, multi_session.traj_regis, multi_session.publishTimeStamp, "camera_init");
+        multi_session.visualizeLoopClosure();
+        publishCloud(&multi_session.pubReloCloud, multi_session.reloKeyFrames[i].second.all_cloud, multi_session.publishTimeStamp, "camera_init");
+        std::cout << "relo name(Idx): " << multi_session.reloKeyFrames[i].first << " target  name(Idx): " << multi_session.reloKeyFrames[i].second.reloTargetIdx
+                            << " score: " << multi_session.reloKeyFrames[i].second.reloScore << std::endl; 
+        i ++;
+        rate.sleep();
+    }
     return 0;
 }

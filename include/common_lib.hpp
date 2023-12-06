@@ -195,6 +195,8 @@ struct KeyFrame{
     pcl::PointCloud<PointType>::Ptr all_cloud;  // origianl pointcloud
     std::vector<std::pair<int, std::vector<int>>> object_cloud; // TODO: segmented object <object_id, ptIdx>
     Eigen::MatrixXd scv_od;  // TODO: T-GRS paper is a variant of scan context
+    int reloTargetIdx;
+    float reloScore;
 };
 
 // edge

@@ -304,8 +304,8 @@ void MultiSession::IncreMapping::writeAllSessionsTrajectories(std::string _postf
     for(auto& _session_info: parsed_poses) {
         int session_idx = _session_info.first;
 
-    	std::string filename_local = save_directory_ + session_names[session_idx] + "_local_" + _postfix + ".txt";
-    	std::string filename_central = save_directory_ + session_names[session_idx] + "_central_" + _postfix + ".txt";
+    	std::string filename_local = sessions_dir_ + save_directory_ + session_names[session_idx] + "_local_" + _postfix + ".txt";
+    	std::string filename_central = sessions_dir_ +  save_directory_ + session_names[session_idx] + "_central_" + _postfix + ".txt";
         cout << filename_central << endl;
 
         std::fstream stream_local(filename_local.c_str(), std::fstream::out);
@@ -321,23 +321,33 @@ void MultiSession::IncreMapping::writeAllSessionsTrajectories(std::string _postf
     }
 }
 
-// void MultiSession::IncreMapping::run( void ){
+void MultiSession::IncreMapping::run( int iteration ){
     
-//     std::cout << "----------  current estimate -----------" << std::endl;
-//     optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges 
-//     writeAllSessionsTrajectories(std::string("bfr_intersession_loops"));
+    std::cout << "----------  current estimate -----------" << std::endl;
+    optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges 
+    writeAllSessionsTrajectories(std::string("bfr_intersession_loops"));
 
-//     std::cout << "----------  sc estimate -----------" << std::endl;
-//     detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
-//     addSCloops();
-//     optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges + SC loop edges
+    std::cout << "----------  sc estimate -----------" << std::endl;
+    detectInterSessionSCloops(); // detectInterSessionRSloops was internally done while sc detection 
+    addSCloops();
+    optimizeMultisesseionGraph(true, iteration); // optimize the graph with existing edges + SC loop edges
 
-//     std::cout << "----------  rs estimate -----------" << std::endl;
-//     bool toOpt = addRSloops(); // using the optimized estimates (rough alignment using SC)
-//     optimizeMultisesseionGraph(toOpt, iteration); // optimize the graph with existing edges + SC loop edges + RS loop edges
+    std::cout << "----------  rs estimate -----------" << std::endl;
+    bool toOpt = addRSloops(); // using the optimized estimates (rough alignment using SC)
+    optimizeMultisesseionGraph(toOpt, iteration); // optimize the graph with existing edges + SC loop edges + RS loop edges
 
-//     writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
-// }
+    writeAllSessionsTrajectories(std::string("aft_intersession_loops"));
+
+    std::string aftPose1 = sessions_dir_ + save_directory_ + "aft_tansformation1.pcd";
+    pcl::io::savePCDFileASCII(aftPose1, *sessions_.at(target_sess_idx).cloudKeyPoses6D);
+
+    std::string aftPose2 = sessions_dir_ + save_directory_ + "aft_tansformation2.pcd";
+    pcl::io::savePCDFileASCII(aftPose2, *sessions_.at(source_sess_idx).cloudKeyPoses6D);
+
+    getReloKeyFrames();
+
+    std::cout << "save all optimization files" << std::endl;
+}
 
 void MultiSession::IncreMapping::initNoiseConstants(){
     // Variances Vector6 order means
@@ -397,8 +407,9 @@ void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt, int ite
         return;
 
     isam->update(gtSAMgraph, initialEstimate);
-    isam->update();
-    // isam->update();
+    for(int i = 0; i < iteration; i++){
+        isam->update();
+    }
     isamCurrentEstimate = isam->calculateEstimate(); // must be followed by update 
 
     gtSAMgraph.resize(0);
@@ -406,9 +417,8 @@ void MultiSession::IncreMapping::optimizeMultisesseionGraph(bool _toOpt, int ite
 
     updateSessionsPoses(); 
 
-
     if(is_display_debug_msgs_) {
-        std::cout << "***** variable values after optimization " << iteration << " *****" << std::endl;
+        std::cout << "***** variable values after optimization" << iteration << " *****" << std::endl;
         // std::cout << std::endl;
         // isamCurrentEstimate.print("Current estimate: ");
         // std::cout << std::endl;
@@ -463,6 +473,10 @@ std::experimental::optional<gtsam::Pose3> MultiSession::IncreMapping::doICPVirtu
     } else {
         mtx.lock();
         std::cout << "  [SC loop] ICP fitness test passed (" << icp.getFitnessScore() << " < " << loopFitnessScoreThreshold << "). Add this SC loop." << std::endl;
+        KeyFrame keyframe;
+        keyframe.reloScore = icp.getFitnessScore();
+        keyframe.reloTargetIdx = loop_idx_target_session;
+        reloKeyFrames.emplace_back(std::make_pair(loop_idx_source_session, keyframe));
         mtx.unlock();
     }
 
@@ -1009,10 +1023,7 @@ void MultiSession::IncreMapping::visualizeLoopClosure()
 void MultiSession::IncreMapping::loadCentralMap(){
     std::string name = sessions_dir_ + central_sess_name_ + "/globalMap.pcd";
     pcl::PointCloud<pcl::PointXYZI>::Ptr map(new pcl::PointCloud<pcl::PointXYZI>());
-    if(pcl::io::loadPCDFile<pcl::PointXYZI>(name, *map) != 1){
-        std::cerr << "cannot load cental map" << std::endl;
-        ros::shutdown();
-    } 
+    pcl::io::loadPCDFile<pcl::PointXYZI>(name, *map);
     for(size_t i = 0; i < map->points.size(); i++){
         PointType pt;
         pt.x = map->points[i].x;
@@ -1020,15 +1031,28 @@ void MultiSession::IncreMapping::loadCentralMap(){
         pt.z = map->points[i].z;
         centralMap_->points.emplace_back(pt);
     }
-    std::cout << "load " << (sessions_dir_ + central_sess_name_ + "/globalMap.pcd") << std::endl;
     downSizeFilterPub.setInputCloud(centralMap_);
     downSizeFilterPub.filter(*centralMap_);
+    std::cout << "load " << (sessions_dir_ + central_sess_name_ + "/globalMap.pcd") << " size: " <<  map->points.size() << std::endl;
 }
 
-void MultiSession::IncreMapping::publish(){
-    publishCloud(&pubCentralGlobalMap, centralMap_, publishTimeStamp, "camera_init");
+// void MultiSession::IncreMapping::publish(){
+//     publishCloud(&pubCentralGlobalMap, centralMap_, publishTimeStamp, "camera_init");
 
-    pcl::PointCloud<PointType>::Ptr traj_central(new pcl::PointCloud<PointType>());
+//     publishCloud(&pubCentralTrajectory, traj_central, publishTimeStamp, "camera_init");
+
+//     publishCloud(&pubRegisteredTrajectory, traj_regis, publishTimeStamp, "camera_init");
+
+//     visualizeLoopClosure();
+
+// }
+
+void MultiSession::IncreMapping::getReloKeyFrames(){
+    for(auto& it : reloKeyFrames){
+        it.second.all_cloud = transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.first].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.first]);
+        it.second.scv_od = sessions_.at(source_sess_idx).cloudKeyFrames[it.first].scv_od;
+    }
+
     for(int i = 0; i < sessions_.at(target_sess_idx).cloudKeyPoses6D->points.size(); i++){
         PointType pt;
         pt.x = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[i].x;
@@ -1036,10 +1060,7 @@ void MultiSession::IncreMapping::publish(){
         pt.z = sessions_.at(target_sess_idx).cloudKeyPoses6D->points[i].z;
         traj_central->points.emplace_back(pt);
     }
-    // traj_central = convertPointTypePose(sessions_.at(target_sess_idx).cloudKeyPoses6D);
-    publishCloud(&pubCentralTrajectory, traj_central, publishTimeStamp, "camera_init");
 
-    pcl::PointCloud<PointType>::Ptr traj_regis(new pcl::PointCloud<PointType>());
     for(int i = 0; i < sessions_.at(source_sess_idx).cloudKeyPoses6D->points.size(); i++){
         PointType pt;
         pt.x = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[i].x;
@@ -1047,18 +1068,5 @@ void MultiSession::IncreMapping::publish(){
         pt.z = sessions_.at(source_sess_idx).cloudKeyPoses6D->points[i].z;
         traj_regis->points.emplace_back(pt);
     }
-    // traj_regis = convertPointTypePose(sessions_.at(source_sess_idx).cloudKeyPoses6D);
-    publishCloud(&pubRegisteredTrajectory, traj_regis, publishTimeStamp, "camera_init");
-
-    visualizeLoopClosure();
-
-    // pcl::PointCloud<PointType>::Ptr relo_all(new pcl::PointCloud<PointType>());
-    // for(auto& it : SCLoopIdxPairs_){
-    //     *relo_all += *transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-    // }
-    // for(auto& it : RSLoopIdxPairs_){
-    //     *relo_all += *transformPointCloud(sessions_.at(source_sess_idx).cloudKeyFrames[it.second].all_cloud, &sessions_.at(source_sess_idx).cloudKeyPoses6D->points[it.second]);
-    // }
-    // publishCloud(&pubReloCloud, relo_all, publishTimeStamp, "camera_init");
 }
 

@@ -81,9 +81,14 @@ class IncreMapping
     Sessions sessions_;
     SessionsDict sessions_dict_;
 
+    pcl::PointCloud<PointType>::Ptr traj_central;  // publish trajectory
+    pcl::PointCloud<PointType>::Ptr traj_regis;
+
+    std::vector<std::pair<int, KeyFrame>> reloKeyFrames;
+
     pcl::PointCloud<PointType>::Ptr centralMap_;
 
-    float pubSize = 0.5;
+    float pubSize = 1.0;
     pcl::VoxelGrid<PointType> downSizeFilterPub;
 
     const int target_sess_idx = 1; // means the centralt session. recommend to use 1 for it (because for the stable indexing for anchor node index) 
@@ -109,16 +114,19 @@ class IncreMapping
 
     std::mutex mtx;
 
-
     IncreMapping(std::string sessions_dir, std::string central_sess_name, std::string query_sess_name, std::string save_directory) : poseOrigin(gtsam::Pose3(gtsam::Rot3::RzRyRx(0.0, 0.0, 0.0), gtsam::Point3(0.0, 0.0, 0.0))) {
       sessions_dir_ = sessions_dir;
       central_sess_name_ = central_sess_name;
       query_sess_name_ = query_sess_name;
       save_directory_ = save_directory;
+
+      fsmkdir(std::string(sessions_dir + save_directory));  // aft instance of multi-session
       
       centralMap_.reset(new pcl::PointCloud<PointType>());
+      traj_central.reset(new pcl::PointCloud<PointType>());
+      traj_regis.reset(new pcl::PointCloud<PointType>());
       downSizeFilterPub.setLeafSize(pubSize, pubSize, pubSize);
-      // loadCentralMap();
+      loadCentralMap();
 
       initOptimizer();
       initNoiseConstants();
@@ -128,7 +136,9 @@ class IncreMapping
     }
     ~IncreMapping(){}
 
-    void run( void );
+    void run( int iteration );
+
+    void getReloKeyFrames();
 
     void initNoiseConstants();
     void initOptimizer();
