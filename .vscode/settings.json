@@ -71,6 +71,7 @@
         "fstream": "cpp",
         "mutex": "cpp",
         "optional": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "dense": "cpp"
     }
 }

@@ -1,4 +1,4 @@
-#include "multi-session/Incremental_mapping.h"
+#include "multi-session/Incremental_mapping.hpp"
 
 std::string sessions_dir;
 std::string central_sess_name;
@@ -20,8 +20,6 @@ int main(int argc, char** argv){
     nh.param<std::string>("multi_session/query_sess_name", query_sess_name, " ");
     nh.param<std::string>("multi_session/save_directory", save_directory, " ");
     nh.param<int>("multi_session/iteration", iteration, 5);
-
-    
 
     ROS_INFO("\033[1;32m----> multi-session starts.\033[0m");
     MultiSession::IncreMapping multi_session(sessions_dir, central_sess_name, query_sess_name, save_directory);

@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef COMMON_LIB_H
-#define COMMON_LIB_H
-
 // ros
 #include <ros/ros.h>
 
@@ -21,6 +18,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 // eigen
 #include <Eigen/Eigen>
@@ -93,6 +91,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <future>
 #include <utility>
 #include <queue>
 #include <deque>
@@ -113,6 +112,7 @@
 #include <csignal>
 #include <unistd.h>
 #include <condition_variable>
+#include <unordered_map>
 
 #include <experimental/filesystem> // file gcc>=8
 #include <experimental/optional>
@@ -122,7 +122,8 @@
 #include <fast_lio_sam/Pose6D.h>
 #include "fast_lio_sam/save_map.h"
 #include "fast_lio_sam/save_pose.h"
-#include <so3_math.h>
+#include "fast_lio_sam/cloud_info.h"
+#include "math_tools.h"
 
 // namesapce
 using namespace std;
@@ -170,6 +171,51 @@ V3F Zero3f(0, 0, 0);
 
 // debug
 bool cout_debug = false;
+
+enum class SensorType
+{
+    VELODYNE,
+    OUSTER,
+    ROBOSENSE,
+    LIVOX
+};
+
+struct VelodynePointXYZIRT
+{
+    PCL_ADD_POINT4D
+    PCL_ADD_INTENSITY;
+    uint16_t ring;
+    float time;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT(VelodynePointXYZIRT,
+                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(uint16_t, ring, ring)(float, time, time))
+
+struct OusterPointXYZIRT
+{
+    PCL_ADD_POINT4D;
+    float intensity;
+    uint32_t t;
+    uint16_t reflectivity;
+    uint8_t ring;
+    // uint16_t noise;
+    uint16_t ambient;
+    uint32_t range;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT(OusterPointXYZIRT,
+                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(uint32_t, t, t)(uint16_t, reflectivity, reflectivity)(uint8_t, ring, ring)(uint16_t, ambient, ambient)(uint32_t, range, range))
+
+struct rsPointXYZIRT
+{
+    PCL_ADD_POINT4D;
+    uint8_t intensity;
+    uint16_t ring = 0;
+    double timestamp = 0;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+POINT_CLOUD_REGISTER_POINT_STRUCT(rsPointXYZIRT,
+                                  (float, x, x)(float, y, y)(float, z, z)(uint8_t, intensity, intensity)(uint16_t, ring, ring)(double, timestamp, timestamp))
 
 // structure
 // trajectory
@@ -234,6 +280,21 @@ struct SphericalPoint{
     float az; // azimuth 
     float el; // elevation
     float r; // radius
+};
+
+// for feature
+struct smoothness_t
+{
+    float value;
+    size_t ind;
+};
+
+struct by_value
+{
+    bool operator()(smoothness_t const &left, smoothness_t const &right)
+    {
+        return left.value < right.value;
+    }
 };
 
 // measurement for fast-lio2: lidar and imu in a single keyframe
@@ -888,4 +949,3 @@ void pubRangeImg(cv::Mat& _rimg,
         _publiser.publish(_msg);    
 } // pubRangeImg
 
-#endif

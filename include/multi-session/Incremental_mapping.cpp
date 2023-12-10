@@ -1,4 +1,4 @@
-#include "Incremental_mapping.h"
+#include "Incremental_mapping.hpp"
 
 bool fileNameSort(std::string name1_, std::string name2_){  // filesort by name
     std::string::size_type iPos1 = name1_.find_last_of('/') + 1;
@@ -586,7 +586,7 @@ void MultiSession::IncreMapping::detectInterSessionSCloops() // using ScanContex
 
         SCLoopIdxPairs_.emplace_back(std::make_pair(loop_idx_target_session, loop_idx_source_session));
     }
-    double ave_time = time_count.toc("sc")/SCLoopIdxPairs_.size();
+    double ave_time = time_count.toc()/SCLoopIdxPairs_.size();
     ROS_INFO_STREAM("\033[1;32m Total " << SCLoopIdxPairs_.size() << " inter-session loops are found. Average time "<<  ave_time <<  " \033[0m" );
 } // detectInterSessionSCloops
 

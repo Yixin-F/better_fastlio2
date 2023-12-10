@@ -19,7 +19,7 @@
 #include "nanoflann.hpp"
 #include "KDTreeVectorOfVectorsAdaptor.h"
 
-#include "../tictoc.h"
+#include "../tictoc.hpp"
 
 using namespace Eigen;
 using namespace nanoflann;

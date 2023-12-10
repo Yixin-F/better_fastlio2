@@ -28,3 +28,10 @@ test   ok
 loop_marker
 trajectory
 relo_pointcloud with timestamp
+
+12.10
+// TODO:
+have we selected sc to get global pose?
+how to use teaser ++  to cover poses?
+learn imu_lidar_localization?
+how to conclude that hdl_localization is poor?

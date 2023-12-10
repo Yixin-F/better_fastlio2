@@ -42,8 +42,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
 find_package(PythonLibs REQUIRED)
 find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
 
-find_package(OpenCV REQUIRED)
-
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
@@ -63,8 +61,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package (GeographicLib REQUIRED)
-# find_package(OpenCV REQUIRED QUIET)
+find_package(Ceres REQUIRED QUIET)
 
 find_package( GTSAMCMakeTools )
 find_package(GTSAM REQUIRED QUIET)
@@ -77,7 +76,8 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
-  # ${OpenCV_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS}
   include)
 
@@ -92,6 +92,7 @@ include_directories(
 add_message_files(
   FILES
   Pose6D.msg
+  cloud_info.msg
 )
 
 add_service_files(
@@ -102,8 +103,11 @@ add_service_files(
 )
 
 generate_messages(
- DEPENDENCIES
- geometry_msgs
+  DEPENDENCIES
+  geometry_msgs
+  std_msgs
+  nav_msgs
+  sensor_msgs
 )
 
 catkin_package(
@@ -116,13 +120,18 @@ add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
+# add_library(pose_estimator include/online-relo/pose_estimator.cpp)
+add_library(map_manager include/online-relo/Map_Manager.cpp)
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)
-target_link_libraries(fastlio_sam_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} ikd_Tree preprocess sc  gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+target_link_libraries(fastlio_sam_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES} ${OpenCV_LIBRARIES} ikd_Tree preprocess sc  gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
 target_include_directories(fastlio_sam_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 # multi-session for relocalization and merge
 add_executable(multi_session src/multi_session.cpp)
 target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
-target_include_directories(multi_session PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+# online relocalization
+add_executable(online_relo src/online_relocalization.cpp include/online-relo/pose_estimator.cpp)
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_INCLUDE_DIRS}  map_manager gtsam  /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 

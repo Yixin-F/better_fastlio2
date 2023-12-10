@@ -7,7 +7,7 @@
 	<node pkg="fast_lio_sam" type="multi_session" name="multi_session" output="screen" />
 
 	<group if="$(arg rviz)">
-		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/relo.rviz" />
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_lio_sam)/rviz_cfg/sc_relo.rviz" />
 	</group>
 
 </launch>
