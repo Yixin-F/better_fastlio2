@@ -35,3 +35,5 @@ have we selected sc to get global pose?
 how to use teaser ++  to cover poses?
 learn imu_lidar_localization?
 how to conclude that hdl_localization is poor?
+
+why i can't install ceres?? or glog ??   i have solved it, by refine google-glog + gflags

@@ -1,19 +1,19 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 2.8.2)
 project(fast_lio_sam)
 
 # SET(CMAKE_BUILD_TYPE "Debug")  
 
-ADD_COMPILE_OPTIONS(-std=c++14)
-set(CMAKE_CXX_STANDARD 14)
+ADD_COMPILE_OPTIONS(-std=c++17)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
 
 add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions" )
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -std=c++0x -std=c++14 -fexceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -std=c++0x -std=c++17 -fexceptions")
 
 message("Current CPU archtecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" )
@@ -76,8 +76,8 @@ include_directories(
   ${PCL_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   ${GTSAM_INCLUDE_DIR}
-  ${CERES_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS}
   include)
 
@@ -120,7 +120,7 @@ add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
-# add_library(pose_estimator include/online-relo/pose_estimator.cpp)
+add_library(pose_estimator include/online-relo/pose_estimator.cpp)
 add_library(map_manager include/online-relo/Map_Manager.cpp)
 
 # fastlio2 mapping
@@ -133,5 +133,6 @@ add_executable(multi_session src/multi_session.cpp)
 target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
 
 # online relocalization
-add_executable(online_relo src/online_relocalization.cpp include/online-relo/pose_estimator.cpp)
-target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_INCLUDE_DIRS}  map_manager gtsam  /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+add_executable(online_relo src/online_relocalization.cpp)
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_INCLUDE_DIRS} pose_estimator map_manager gtsam  
+                                                                                /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a /usr/lib/x86_64-linux-gnu/libglog.a) 
