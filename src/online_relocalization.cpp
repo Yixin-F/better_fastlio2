@@ -1,4 +1,4 @@
-#include "online-relo/pose_estimator.hpp"
+#include "online-relo/pose_estimator.h"
 
 int main(int argc, char **argv)
 {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "featureExtract.hpp"
-#include "Map_Manager.hpp"
-#include "ceresfunc.hpp"
-#include "../mutexDeque.hpp"
-#include "../tool_color_printf.hpp"
+#include "featureExtract.h"
+#include "Map_Manager.h"
+#include "ceresfunc.h"
+#include "../mutexDeque.h"
+#include "../tool_color_printf.h"
 #include "../tictoc.hpp"
 
 struct pcdmap

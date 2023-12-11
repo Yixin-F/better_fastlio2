@@ -1,10 +1,9 @@
 #pragma once
 
-#include "common_lib.hpp"
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 #include "sophus/so3.hpp"
-#include "IMUIntegrator.hpp"
+#include "IMUIntegrator.h"
 
 const int NUM_THREADS = 4;
 

@@ -133,6 +133,6 @@ add_executable(multi_session src/multi_session.cpp)
 target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
 
 # online relocalization
-add_executable(online_relo src/online_relocalization.cpp)
-target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_INCLUDE_DIRS} pose_estimator map_manager gtsam  
-                                                                                /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a /usr/lib/x86_64-linux-gnu/libglog.a) 
+add_executable(online_relo src/online_relocalization.cpp include/online-relo/pose_estimator.cpp)
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}  pose_estimator map_manager gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a 
+                                                                /usr/lib/x86_64-linux-gnu/libglog.a /usr/local/lib/libgflags.a) 
