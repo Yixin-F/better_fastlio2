@@ -1,4 +1,4 @@
-#include "common_lib.hpp"
+#include "common_lib.h"
 #include "use-ikfom.hpp"
 
 #define MAX_INI_COUNT (20)

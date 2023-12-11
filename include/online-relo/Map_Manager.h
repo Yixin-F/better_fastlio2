@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common_lib.hpp"
+#include "../common_lib.h"
 
 class MAP_MANAGER
 {

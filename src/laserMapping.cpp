@@ -1,4 +1,4 @@
-#include "common_lib.hpp"
+#include "common_lib.h"
 #include "preprocess.h"
 
 #include <darknet_ros_msgs/BoundingBox.h>

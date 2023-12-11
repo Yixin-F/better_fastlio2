@@ -1,6 +1,11 @@
 #pragma once
 
-#include "../common_lib.hpp"
+#include <sensor_msgs/Imu.h>
+#include <queue>
+#include <mutex>
+#include <Eigen/Core>
+#include <utility>
+#include <ros/ros.h>
 #include "sophus/so3.hpp"
 
 class IMUIntegrator

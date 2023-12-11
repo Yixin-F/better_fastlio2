@@ -53,6 +53,7 @@
 
     initializedFlag = NonInitialized;
 
+    // slide windows
     for (int i = 0; i < localMapWindowSize; i++)
     {
       localCornerMap[i].reset(new pcl::PointCloud<PointType>);

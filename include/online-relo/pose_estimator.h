@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../common_lib.h"
 #include "featureExtract.h"
 #include "Map_Manager.h"
 #include "ceresfunc.h"
+#include <ceres/ceres.h>
 #include "../mutexDeque.h"
 #include "../tool_color_printf.h"
 #include "../tictoc.hpp"
