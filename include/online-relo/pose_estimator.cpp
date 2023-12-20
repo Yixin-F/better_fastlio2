@@ -18,12 +18,13 @@
       WINDOWSIZE = 1;
     else
       WINDOWSIZE = 20;
-    sub_initial_pose_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::initialPoseCB, this);
 
-    ds_corner_.setLeafSize(corner_leaf_, corner_leaf_, corner_leaf_);
+    sub_initial_pose_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::initialPoseCB, this);  // interaction in rviz
+
+    ds_corner_.setLeafSize(corner_leaf_, corner_leaf_, corner_leaf_);  // downsample
     ds_surf_.setLeafSize(surf_leaf_, surf_leaf_, surf_leaf_);
 
-    if (loadmap())
+    if (loadmap())  // map load
       std::cout << ANSI_COLOR_GREEN << "load map successful..." << ANSI_COLOR_RESET << std::endl;
     else
     {
@@ -62,7 +63,7 @@
     laserCloudCornerFromLocal.reset(new pcl::PointCloud<PointType>);
     laserCloudSurfFromLocal.reset(new pcl::PointCloud<PointType>);
 
-    map_manager = new MAP_MANAGER(0.2, 0.3);
+    map_manager = new MAP_MANAGER(0.2, 0.3);  // map manager
     lidarFrameList.reset(new std::list<LidarFrame>);
   }
 
@@ -85,7 +86,7 @@
     kf.surf->clear();
     for (const auto &p : kf.laserCloud->points)
     {
-      if (std::fabs(p.normal_z - 1.0) < 1e-5)
+      if (std::fabs(p.normal_z - 1.0) < 1e-5) 
         kf.corner->push_back(p);
     }
     for (const auto &p : kf.laserCloud->points)
@@ -124,6 +125,7 @@
     std::cout << ANSI_COLOR_YELLOW << "Change flat from " << initializedFlag
               << " to " << Initializing << ", start do localizating ..."
               << ANSI_COLOR_RESET << std::endl;
+
     if (initializedFlag != NonInitialized)
     { // TODO: 非第一次执行，需要重置部分参数
       delta_Rl = Eigen::Matrix3d::Identity();
@@ -794,9 +796,9 @@
         laserCloudCornerFromLocal->clear();
         laserCloudSurfFromLocal->clear();
         if (use_lio)
-          MapIncrementLocal(lidar_list->front());
+          MapIncrementLocal(lidar_list->front());  // inremental mapping
         t3 = tc.toc();
-        std::cout << "LIO takes: " << t1 << ",pubodom:" << t2 << ",mapincrement:" << t3 << std::endl;
+        std::cout << "LIO takes: " << t1 << ", pubodom: " << t2 << ", mapincrement: " << t3 << std::endl;
 #define SAVE_TRAJ
 
 #ifdef SAVE_TRAJ

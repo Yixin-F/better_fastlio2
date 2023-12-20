@@ -166,7 +166,7 @@ public:
 
   int pushCount = 0;
   double startTime = 0;
-  int WINDOWSIZE;
+  int WINDOWSIZE;  // slide window
   bool LidarIMUInited = false;
   boost::shared_ptr<std::list<LidarFrame>> lidarFrameList;
   std::string rootDir;

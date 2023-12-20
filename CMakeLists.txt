@@ -121,8 +121,8 @@ add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
-add_library(pose_estimator include/online-relo/pose_estimator.cpp)
-add_library(map_manager include/online-relo/Map_Manager.cpp)
+add_library(pose_estimator include/online-relo/pose_estimator_new.cpp include/sc-relo/Scancontext.cpp)
+# add_library(map_manager include/online-relo/Map_Manager.cpp)
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)
@@ -135,4 +135,4 @@ target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHO
 
 # online relocalization
 add_executable(online_relo src/online_relocalization.cpp)
-target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}  pose_estimator map_manager gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a gflags) 
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}  pose_estimator ikd_Tree preprocess incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 

@@ -72,6 +72,11 @@
         "mutex": "cpp",
         "optional": "cpp",
         "typeindex": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "future": "cpp",
+        "unordered_set": "cpp",
+        "forward_list": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp"
     }
 }

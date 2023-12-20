@@ -23,6 +23,9 @@ class Session{
 
     Trajectory cloudKeyPoses6D;  // parsing
     Trajectory originPoses6D;
+    pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;
+
+    pcl::PointCloud<PointType>::Ptr globalMap;
 
     std::vector<KeyFrame> cloudKeyFrames;
     pcl::VoxelGrid<PointType> downSizeFilterICP;
@@ -35,11 +38,13 @@ class Session{
     void allocateMemory(){
       cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());
       originPoses6D.reset(new pcl::PointCloud<PointTypePose>());
+      globalMap.reset(new pcl::PointCloud<PointType>());
     }
 
     void loadSessionGraph();
     void loadSessionScanContextDescriptors();
     void loadSessionKeyframePointclouds();
+    void loadGlobalMap();
 
     void initKeyPoses(void);
     void updateKeyPoses(const gtsam::ISAM2 * isam, const gtsam::Pose3& _anchor_transform);

@@ -37,3 +37,13 @@ learn imu_lidar_localization?
 how to conclude that hdl_localization is poor?
 
 why i can't install ceres?? or glog ??   i have solved it, by refine google-glog + gflags
+
+12.13
+global:  sc (transform in yaw) + icp to get score, we should publish all candicates !!   get a coarse global pose
+correct:  how to get a precise initial pose?  
+                    if the calculated "coarse global pose" is not satisfied, we can select to refine it by manual process. but we wanna use teaser the final pose.
+online relocalization: we still use the iESKF in fastlio2, including imu and lidar, but the primary difference is that the measurement function is replaced by the scan2map match between current scan and prior local map.
+                                            we guess that the real-time performance is ok, at least the precision of relocalization is perfect like fastlio2.
+incremental mapping: we should use the map manager in repo: lidar_imu_localization.
+
+so, the first question is to develop a map manager to manage the prior map.

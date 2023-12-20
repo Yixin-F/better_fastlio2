@@ -23,6 +23,7 @@ MultiSession::Session::Session(int _idx, std::string _name, std::string _session
     allocateMemory();
     
     loadSessionGraph();
+    loadGlobalMap();
 
     loadSessionKeyframePointclouds();
     loadSessionScanContextDescriptors();
@@ -49,7 +50,14 @@ void MultiSession::Session::initKeyPoses(void){
         thisPose6D.yaw   = pose.rotation().yaw();
         thisPose6D.time = 0.0; // TODO: no-use
 
-        cloudKeyPoses6D->push_back(thisPose6D);    
+        cloudKeyPoses6D->push_back(thisPose6D);   
+
+        PointType thisPose3D;
+        thisPose3D.x = pose.translation().x();
+        thisPose3D.y = pose.translation().x();
+        thisPose3D.z = pose.translation().x();
+
+        cloudKeyPoses3D->push_back(thisPose3D);   
     }
 
     PointTypePose thisPose6D;
@@ -254,6 +262,13 @@ void MultiSession::Session::loadSessionGraph()
     ROS_INFO_STREAM("\033[1;32m - num nodes: " << nodes_.size() << "\033[0m");
 }
 
+// load map
+void MultiSession::Session::loadGlobalMap(){
+    std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
+    pcl::io::loadPCDFile(mapfile_path, *globalMap);
+
+    ROS_INFO_STREAM("\033[1;32m Map loaded: " << mapfile_path << "\033[0m");
+}
 
 // IncreMapping
 

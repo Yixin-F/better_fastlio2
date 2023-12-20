@@ -634,6 +634,10 @@ void recontructIKdTree()
         ROS_INFO("Reconstructed  ikdtree ");
         int featsFromMapNum = ikdtree.validnum();
         kdtree_size_st = ikdtree.size();
+
+        featsFromMap->clear(); // TODO: right?
+        featsFromMap->points = subMapKeyFramesDS->points;
+
         std::cout << "featsFromMapNum  =  " << featsFromMapNum << "\t"
                   << " kdtree_size_st   =  " << kdtree_size_st << std::endl;
     }
@@ -1894,8 +1898,7 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
         if (!point_selected_surf[i])
             continue;
 
-        VF(4)
-        pabcd;                          // 平面点信息
+        VF(4) pabcd;                          // 平面点信息
         point_selected_surf[i] = false; // 将该点设置为无效点，用来计算是否为平面点
         // 拟合平面方程ax+by+cz+d=0并求解点到平面距离,返回:是否有内点大于距离阈值
         if (esti_plane(pabcd, points_near, 0.1f))
