@@ -61,5 +61,5 @@ public:
     double calc_matching_error(const pcl::PointCloud<PointType>::Ptr& cloud, const Eigen::Matrix4f& transformation);
 
     pcl::PointCloud<pcl::FPFHSignature33>::Ptr extract_fpfh(const pcl::PointCloud<PointType>::Ptr& cloud);
-    std::pair<double, Eigen::Matrix4f> match();
+    std::pair<double, Eigen::Isometry3f> match();
 };

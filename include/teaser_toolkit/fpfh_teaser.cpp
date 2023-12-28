@@ -68,7 +68,7 @@ pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfh_teaser::extract_fpfh(const pcl::
     return features;
 }
 
-std::pair<double, Eigen::Matrix4f> fpfh_teaser::match(){
+std::pair<double, Eigen::Isometry3f> fpfh_teaser::match(){
     auto fpfh_source = extract_fpfh(cloud_source);
     auto fpfh_target = extract_fpfh(cloud_target);
 
@@ -123,5 +123,5 @@ std::pair<double, Eigen::Matrix4f> fpfh_teaser::match(){
 
     double error = calc_matching_error(cloud_source, transMatrix);
 
-    return std::make_pair(error, transMatrix);
+    return std::make_pair(error, transformation);
 }

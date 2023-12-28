@@ -136,9 +136,8 @@ add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
-add_library(pose_estimator include/online-relo/pose_estimator_new.cpp include/sc-relo/Scancontext.cpp)
+add_library(pose_estimator include/online-relo/pose_estimator.cpp include/sc-relo/Scancontext.cpp)
 add_library(fpfh_teaser include/teaser_toolkit/fpfh_teaser.cpp ${TEASER_LIBRARIES})
-# add_library(map_manager include/online-relo/Map_Manager.cpp)
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)

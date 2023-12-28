@@ -1,4 +1,4 @@
-#include "pose_estimator_new.h"
+#include "pose_estimator.h"
 
 pose_estimator::pose_estimator(std::string priorPath){
     nh.param<std::string>("common/rootDir", rootDir, " ");
@@ -9,15 +9,15 @@ pose_estimator::pose_estimator(std::string priorPath){
     nh.param<double>("mapping/b_gyr_cov", b_gyr_cov, 0.0001);
     nh.param<double>("mapping/b_acc_cov", b_acc_cov, 0.0001);
 
-    // if(p_pre->lidar_type == LIVOX){
-    //     subCloud = nh.subscribe(pointCloudTopic, 500, &pose_estimator::livox_pcl_cbk, this);
-    // }
-    // else{
-    //     subCloud = nh.subscribe(pointCloudTopic, 500, &pose_estimator::standard_pcl_cbk, this);
-    // }
+    if(p_pre->lidar_type == LIVOX){
+        subCloud = nh.subscribe(pointCloudTopic, 500, &pose_estimator::livox_pcl_cbk, this);
+    }
+    else{
+        subCloud = nh.subscribe(pointCloudTopic, 500, &pose_estimator::standard_pcl_cbk, this);
+    }
     
-    // subIMU = nh.subscribe(imuTopic, 20000, &pose_estimator::imuCBK, this);
-    // subPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::poseCBK, this);  // interaction in rviz
+    subIMU = nh.subscribe(imuTopic, 20000, &pose_estimator::imuCBK, this);
+    subPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::poseCBK, this);  // interaction in rviz
 
     pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
 
@@ -43,15 +43,30 @@ pose_estimator::pose_estimator(std::string priorPath){
     // esekf
     fill(epsi, epsi + 23, 0.001);
     kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
+
+    std::cout << ANSI_COLOR_RED_BOLD << "please promise your device being static until the  relocalization finashed!!" << ANSI_COLOR_RESET << std::endl;
 }
 
 void pose_estimator::run(){
-    ros::Rate rate(5000);
+    ros::Rate rate(500);
     bool status = ros::ok();
     while (status){
         if (flg_exit)
             break;
         ros::spinOnce();
+
+
+        // mtx_buffer.lock(); 
+        // initpose_flag = getInitPose();
+        // mtx_buffer.unlock();    
+        // sig_buffer.notify_all();
+        
+        // if(initpose_flag){  //FIXME: how to transfer
+        //     SO3 offset_rotation = fromTeaser.linear();
+        //     vect3 offset_translation = fromTeaser.translation();
+        //     pos_lid = offset_translation + offset_rotation * pos_lid;
+        //     initpose_flag = false;
+        // }
 
         if (sync_packages(Measures)){
             if (flg_first_scan){
@@ -68,6 +83,7 @@ void pose_estimator::run(){
 
         p_imu->Process(Measures, kf, feats_undistort);
         state_point = kf.get_x();  
+
         pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
 
         if (feats_undistort->empty() || (feats_undistort == NULL)){
@@ -200,6 +216,7 @@ bool pose_estimator::sync_packages(MeasureGroup &meas){
 
         lidar_pushed = true; 
     }
+
     if (last_timestamp_imu < lidar_end_time)
     {
         return false;
@@ -290,6 +307,41 @@ void pose_estimator::imuCBK(const sensor_msgs::Imu::ConstPtr &msg_in){
         imu_buffer.clear();
     }
 
+    // sensor_msgs::Imu::Ptr imu_first = imu_buffer.front();
+    // sensor_msgs::Imu::Ptr imu_last = imu_buffer.back();
+
+    // double x_acc_first = imu_first->linear_acceleration.x;
+    // double y_acc_first = imu_first->linear_acceleration.y;
+    // if(x_acc_first >= 8.0){
+    //     ROS_ERROR("Wrong x-coordinates ...");
+    //     x_acc_first = imu_first->linear_acceleration.z;
+    // }
+
+    // if(y_acc_first >= 8.0){
+    //     ROS_ERROR("Wrong y-coordinates ...");
+    //     y_acc_first = imu_first->linear_acceleration.z;
+    // }
+
+    // double x_acc_last = imu_last->linear_acceleration.x;
+    // double y_acc_last = imu_last->linear_acceleration.y;
+    // if(x_acc_last >= 8.0){
+    //     ROS_ERROR("Wrong x-coordinates ...");
+    //     x_acc_last = imu_last->linear_acceleration.z;
+    // }
+
+    // if(y_acc_last >= 8.0){
+    //     ROS_ERROR("Wrong y-coordinates ...");
+    //     y_acc_last = imu_last->linear_acceleration.z;
+    // }
+
+    // double t = timestamp - last_timestamp_imu;
+    // double x_pos = 1 / 2 * (1 / 2 *(x_acc_first + x_acc_last)) * t * t;
+    // double y_pos = 1 / 2 * (1 / 2 *(y_acc_first + y_acc_last)) * t * t;
+    // double pos = std::sqrt(x_pos * x_pos + y_pos * y_pos);
+    // if(pos >= 0.1){   // FIXME: how to get the offset of imu, we can not implement pre-intergration now 
+    //     imu_static = true;
+    // }
+
     last_timestamp_imu = timestamp; 
 
     imu_buffer.push_back(msg); 
@@ -309,12 +361,13 @@ void pose_estimator::poseCBK(const geometry_msgs::PoseWithCovarianceStampedConst
     tf::Quaternion q;
     tf::quaternionMsgToTF(msg->pose.pose.orientation, q);
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    initpose.roll = roll;
-    initpose.pitch = pitch;
+    // initpose.roll = roll;
+    // initpose.pitch = pitch;
+    initpose.roll = 0.0;   // FIXME: it's better to choose zero, becasue we do not believe the coarse roll and pitch from mannual set 
+    initpose.pitch = 0.0;
     initpose.yaw = yaw;
     std::cout << ANSI_COLOR_RED << "Get initial pose: " << initpose.x << " " << initpose.y << " "
               << initpose.z << " " << roll << " " << pitch << " " << yaw << ANSI_COLOR_RESET << std::endl;
-    // initpose_flag = true;
 }
 
 void pose_estimator::lasermap_fov_segment(){
@@ -551,7 +604,7 @@ bool pose_estimator::easyToRelo(){
     curPose.x = transformTobeMapped[3];
     curPose.y = transformTobeMapped[4];
     curPose.z = transformTobeMapped[5];
-    kdtreeGlobalMapPoses->radiusSearch(curPose, 5.0, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap, 0);  // TODO: add the radius into yaml
+    kdtreeGlobalMapPoses->radiusSearch(curPose, 5.0, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap);  // TODO: add the radius into yaml
 
     if(pointSearchIndGlobalMap.size() >= 2){  // TODO: add the radius into yaml
         return true;
@@ -561,10 +614,35 @@ bool pose_estimator::easyToRelo(){
     }
 }
 
-void pose_estimator::getInitPose(){
+bool pose_estimator::getInitPose(){
     TicToc time_count;
 
-    Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(*feats_down_body);  // FIXME: just use a single scan !! please stay static before get accuracy pose
+    std::cout << ANSI_COLOR_RED_BOLD << "please be static (but you can implement rotation), wait for the initial pose ..." << ANSI_COLOR_RESET << std::endl;
+    if(imu_buffer.empty() || lidar_buffer.empty()){
+        ROS_ERROR("There are no imu or lidar inputs, can not get initial pose ...");
+        return false;
+    }
+    
+    if(lidar_buffer.size() <= 5){  // FIXME: need to be checked  5
+        ROS_ERROR("There are no enough lidar inputs, please wait ...");
+        return false;
+    }
+
+    double x_offset = state_point.pos(0);
+    double y_offset = state_point.pos(1);
+
+    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1){   // FIXME: need to be checked  0.1
+        ROS_ERROR("wait for the boost ...");
+        return false;
+    }
+
+    pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>);
+
+    for(int i = 0; i < ((lidar_buffer.size() - 2) >= 5 ? 5 : (lidar_buffer.size() - 2)); i++){
+        *reloCloud += *lidar_buffer[i];
+    }
+
+    Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(*reloCloud);  // FIXME: just use a single scan !! please stay static before get accuracy pose
     Eigen::MatrixXd ringkey = priorKnown->scManager.makeRingkeyFromScancontext(curSC);
     Eigen::MatrixXd sectorkey = priorKnown->scManager.makeSectorkeyFromScancontext(curSC);
     std::vector<float> polarcontext_invkey_vec = ScanContext::eig2stdvec(ringkey);
@@ -582,8 +660,12 @@ void pose_estimator::getInitPose(){
     diffPose.pitch = 0;
     diffPose.yaw = yawDiff;
 
-    pcl::PointCloud<PointType>::Ptr feats_down_body_diff(new pcl::PointCloud<PointType>());
-    *feats_down_body_diff += *transformPointCloud(feats_down_body, &diffPose);
+    pcl::PointCloud<PointType>::Ptr reloCloud_diff(new pcl::PointCloud<PointType>());
+    *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);
+
+    // TODO: publish relocloud 
+
+    // TODO: check and should we select the mannual rivz pose
 
     // TODO: teaser ++ to get the precise initial pose in global map and reset it in the ieskf !!
 }

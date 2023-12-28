@@ -213,6 +213,8 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
     solve_time += omp_get_wtime() - solve_start_;
 }
 
+bool imu_static = false;
+
 class pose_estimator{
 public:
     ros::NodeHandle nh;
@@ -234,6 +236,7 @@ public:
 
     MultiSession::Session *priorKnown;  // prior map
     PointTypePose initpose;
+    Eigen::Isometry3f fromTeaser;
     bool initpose_flag = false;
 
     pose_estimator(std::string priorPath);  // TODO: give initial pose
@@ -245,7 +248,7 @@ public:
     void imuCBK(const sensor_msgs::Imu::ConstPtr &msg_in);
     void poseCBK(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
 
-    void getInitPose();
+    bool getInitPose();
 
     void run();
     bool sync_packages(MeasureGroup &meas);
