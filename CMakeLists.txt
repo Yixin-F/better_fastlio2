@@ -36,8 +36,10 @@ else()
 endif()
 
 find_package(OpenMP QUIET)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
+if (OPENMP_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
+endif()
 
 find_package(PythonLibs REQUIRED)
 find_path(MATPLOTLIB_CPP_INCLUDE_DIRS "matplotlibcpp.h")
@@ -60,16 +62,29 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
+message(Eigen: ${EIGEN3_INCLUDE_DIR})
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package (GeographicLib REQUIRED)
 find_package(Ceres REQUIRED QUIET)
 find_package(gflags REQUIRED QUIET)
-
 find_package( GTSAMCMakeTools )
 find_package(GTSAM REQUIRED QUIET)
 
-message(Eigen: ${EIGEN3_INCLUDE_DIR})
+include(ExternalProject)
+ExternalProject_Add(teaser
+  GIT_REPOSITORY https://github.com/koide3/TEASER-plusplus
+  GIT_TAG master
+  BUILD_IN_SOURCE
+  CMAKE_ARGS -DBUILD_TESTS=OFF -DBUILD_PYTHON_BINDINGS=OFF -DBUILD_DOC=OFF -DBUILD_TEASER_FPFH=ON -DCMAKE_INSTALL_PREFIX=${CATKIN_DEVEL_PREFIX}
+  INSTALL_COMMAND make install
+)
+
+set(TEASER_LIBRARIES
+  ${CATKIN_DEVEL_PREFIX}/lib/libpmc.so
+  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_registration.so
+  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_features.so
+)
 
 include_directories(
 	${catkin_INCLUDE_DIRS} 

@@ -40,6 +40,7 @@ pose_estimator::pose_estimator(std::string priorPath){
     p_imu->set_gyr_bias_cov(V3D(b_gyr_cov, b_gyr_cov, b_gyr_cov)); 
     p_imu->set_acc_bias_cov(V3D(b_acc_cov, b_acc_cov, b_acc_cov)); 
 
+    // esekf
     fill(epsi, epsi + 23, 0.001);
     kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 }
@@ -326,8 +327,8 @@ void pose_estimator::lasermap_fov_segment(){
     {
         for (int i = 0; i < 3; i++)
         {
-            LocalMap_Points.vertex_min[i] = pos_LiD(i) - cube_len / 2.0; // 边界距离当前位置100米
-            LocalMap_Points.vertex_max[i] = pos_LiD(i) + cube_len / 2.0; // 边界距离当前位置100米
+            LocalMap_Points.vertex_min[i] = pos_LiD(i) - cube_len / 2.0; 
+            LocalMap_Points.vertex_max[i] = pos_LiD(i) + cube_len / 2.0;// 边界距离当前位置100米
         }
         Localmap_Initialized = true;
         return;
@@ -563,10 +564,10 @@ bool pose_estimator::easyToRelo(){
 void pose_estimator::getInitPose(){
     TicToc time_count;
 
-    Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(feats_down_body);  // FIXME: just use a single scan !! please stay static before get accuracy pose
+    Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(*feats_down_body);  // FIXME: just use a single scan !! please stay static before get accuracy pose
     Eigen::MatrixXd ringkey = priorKnown->scManager.makeRingkeyFromScancontext(curSC);
-    Eigen::MatrixXd sectorkey = makeSectorkeyFromScancontext(curSC);
-    std::vector<float> polarcontext_invkey_vec = eig2stdvec(ringkey);
+    Eigen::MatrixXd sectorkey = priorKnown->scManager.makeSectorkeyFromScancontext(curSC);
+    std::vector<float> polarcontext_invkey_vec = ScanContext::eig2stdvec(ringkey);
 
     auto detectResult = priorKnown->scManager.detectLoopClosureIDBetweenSession(polarcontext_invkey_vec, curSC);  // idx & yaw_diff
     

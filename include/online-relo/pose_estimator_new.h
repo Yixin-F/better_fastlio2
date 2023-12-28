@@ -47,14 +47,6 @@ V3D position_last(Zero3d);
 V3D Lidar_T_wrt_IMU(Zero3d); 
 M3D Lidar_R_wrt_IMU(Eye3d);  
 
-// EKF inputs and output
-MeasureGroup Measures;
-esekfom::esekf<state_ikfom, 12, input_ikfom> kf; 
-state_ikfom state_point;                         
-vect3 pos_lid;   
-
-KD_TREE ikdtree;
-
 nav_msgs::Path path;                    
 nav_msgs::Odometry odomAftMapped;         
 geometry_msgs::Quaternion geoQuat;        
@@ -94,6 +86,14 @@ float transformTobeMapped[6];
 std::vector<int> pointSearchIndGlobalMap;
 std::vector<float> pointSearchSqDisGlobalMap;
 pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses(new pcl::KdTreeFLANN<PointType>());
+
+// EKF inputs and output
+MeasureGroup Measures;
+esekfom::esekf<state_ikfom, 12, input_ikfom> kf; 
+state_ikfom state_point;                         
+vect3 pos_lid;   
+
+KD_TREE ikdtree;
 
 // measurement function
 void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data)
@@ -186,7 +186,7 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
         point_be_crossmat << SKEW_SYM_MATRX(point_this_be);
         V3D point_this = s.offset_R_L_I * point_this_be + s.offset_T_L_I; 
         M3D point_crossmat;
-        point_crossmat << SKEW_SYM_MATRX(point_poseCBKthis); 
+        point_crossmat << SKEW_SYM_MATRX(point_this); 
 
         /*** get the normal vector of closest surface/corner ***/
         const PointType &norm_p = corr_normvect->points[i];
@@ -253,7 +253,7 @@ public:
     void publish_map(const ros::Publisher &pubLaserCloudMap);
     void getCurPose(state_ikfom cur_state);
     void recontructIKdTree();
-    void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data);
+    // void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data);
     void pointBodyToWorld(PointType const *const pi, PointType *const po);
     void publish_odometry(const ros::Publisher &pubOdomAftMapped);
     void map_incremental();
