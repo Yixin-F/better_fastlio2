@@ -5,6 +5,7 @@
 
 #include <std_msgs/Header.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Bool.h>
 
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>

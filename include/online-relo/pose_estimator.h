@@ -226,6 +226,7 @@ public:
     ros::Subscriber subCloud;
     ros::Subscriber subIMU;
     ros::Subscriber subPose;
+    ros::Subscriber subSrv;
     ros::Publisher pubPriorMap;
     ros::Publisher pubReloMap;
     ros::Publisher pubOdomAftMapped;
@@ -236,6 +237,8 @@ public:
 
     MultiSession::Session *priorKnown;  // prior map
     PointTypePose initpose;
+    PointTypePose finalpose;
+    int reloIdx;
     Eigen::Isometry3f fromTeaser;
     bool initpose_flag = false;
 
@@ -249,6 +252,8 @@ public:
     void poseCBK(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg);
 
     bool getInitPose();
+    bool useMannual = false;
+    void mannualCBK(const std_msgs::Bool::ConstPtr &msg);
 
     void run();
     bool sync_packages(MeasureGroup &meas);

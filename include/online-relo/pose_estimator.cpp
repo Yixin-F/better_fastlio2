@@ -17,7 +17,9 @@ pose_estimator::pose_estimator(std::string priorPath){
     }
     
     subIMU = nh.subscribe(imuTopic, 20000, &pose_estimator::imuCBK, this);
+
     subPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::poseCBK, this);  // interaction in rviz
+    subSrv = nh.subscribe<std_msgs::Bool>("/posesrv", 1, &pose_estimator::mannualCBK, this);   // TODO: external signal from your terminal
 
     pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
 
@@ -370,6 +372,10 @@ void pose_estimator::poseCBK(const geometry_msgs::PoseWithCovarianceStampedConst
               << initpose.z << " " << roll << " " << pitch << " " << yaw << ANSI_COLOR_RESET << std::endl;
 }
 
+void pose_estimator::mannualCBK(const std_msgs::Bool::ConstPtr &msg){
+    useMannual = msg->data;
+}
+
 void pose_estimator::lasermap_fov_segment(){
     cub_needrm.clear(); 
     kdtree_delete_counter = 0;
@@ -631,12 +637,15 @@ bool pose_estimator::getInitPose(){
     double x_offset = state_point.pos(0);
     double y_offset = state_point.pos(1);
 
-    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1){   // FIXME: need to be checked  0.1
+    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1 || lidar_buffer.size() > 10){   // FIXME: need to be checked  0.1
         ROS_ERROR("wait for the boost ...");
         return false;
     }
 
     pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>);
+    pcl::PointCloud<PointType>::Ptr reloCloud_res(new pcl::PointCloud<PointType>);
+    pcl::PointCloud<PointType>::Ptr near_cloud(new pcl::PointCloud<PointType>());
+    pcl::PointCloud<PointType>::Ptr tmp_cloud(new pcl::PointCloud<PointType>());
 
     for(int i = 0; i < ((lidar_buffer.size() - 2) >= 5 ? 5 : (lidar_buffer.size() - 2)); i++){
         *reloCloud += *lidar_buffer[i];
@@ -649,23 +658,115 @@ bool pose_estimator::getInitPose(){
 
     auto detectResult = priorKnown->scManager.detectLoopClosureIDBetweenSession(polarcontext_invkey_vec, curSC);  // idx & yaw_diff
     
-    int reloIdx = detectResult.first;
+    reloIdx = detectResult.first;
     float yawDiff = detectResult.second;
 
+    std::cout << ANSI_COLOR_GREEN << "Scan Context Relo at Idx: " << reloIdx << " in prior map" << ANSI_COLOR_RESET << std::endl;
+
     PointTypePose diffPose;
-    diffPose.x = 0;
-    diffPose.y = 0;
-    diffPose.z = 0;
-    diffPose.roll = 0;
-    diffPose.pitch = 0;
-    diffPose.yaw = yawDiff;
+    diffPose.x = priorKnown->cloudKeyPoses6D->points[reloIdx].x;
+    diffPose.y = priorKnown->cloudKeyPoses6D->points[reloIdx].y;
+    diffPose.z = priorKnown->cloudKeyPoses6D->points[reloIdx].z;
+    diffPose.roll = priorKnown->cloudKeyPoses6D->points[reloIdx].roll;
+    diffPose.pitch = priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
+    diffPose.yaw = priorKnown->cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it 
 
     pcl::PointCloud<PointType>::Ptr reloCloud_diff(new pcl::PointCloud<PointType>());
     *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);
 
     // TODO: publish relocloud 
+    publishCloud(&pubReloMap, reloCloud_diff, ros::Time::now(), "base_link");  // TODO: put it into an another thread
+
+    diffPose.x = 0.0;
+    diffPose.y = 0.0;
+    diffPose.z = 0.0;
+    diffPose.roll = 0.0;
+    diffPose.yaw = yawDiff;
+    finalpose.yaw = yawDiff;
+    *reloCloud_res += *transformPointCloud(reloCloud, &diffPose);
+
+    near_cloud->clear();
+    PointTypePose ptd;
+    ptd.x = -priorKnown->cloudKeyPoses6D->points[reloIdx].x;
+    ptd.y = -priorKnown->cloudKeyPoses6D->points[reloIdx].y;
+    ptd.z = -priorKnown->cloudKeyPoses6D->points[reloIdx].z;
+    ptd.roll = -priorKnown->cloudKeyPoses6D->points[reloIdx].roll;
+    ptd.pitch = -priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
+    ptd.yaw = -priorKnown->cloudKeyPoses6D->points[reloIdx].yaw;
+    *near_cloud += *priorKnown->cloudKeyFrames[reloIdx].all_cloud;
+    if(reloIdx - 1 > 0){
+        tmp_cloud->clear();
+        tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[reloIdx - 1].all_cloud, &priorKnown->cloudKeyPoses6D->points[reloIdx - 1]);
+        tmp_cloud = transformPointCloud(tmp_cloud, &ptd);
+        *near_cloud += *tmp_cloud;
+    }
+    if(reloIdx + 1 <= priorKnown->cloudKeyPoses6D->points.size() - 1){
+        tmp_cloud->clear();
+        tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[reloIdx + 1].all_cloud, &priorKnown->cloudKeyPoses6D->points[reloIdx + 1]);
+        tmp_cloud = transformPointCloud(tmp_cloud, &ptd);
+        *near_cloud += *tmp_cloud;
+    }
 
     // TODO: check and should we select the mannual rivz pose
+    if(!useMannual){
+        std::cout << ANSI_COLOR_GREEN_BOLD << "Are you sure that we do not need a external pose set from rviz ? " << "\n"
+                           <<"If you wanna a mannual set, please give that in 10 s in rviz ..."
+                           <<  ANSI_COLOR_RESET << std::endl;
+        ros::Duration(20).sleep();  // FIXME: check it
+    }
+
+    if(!useMannual){
+        std::cout << ANSI_COLOR_RED_BOLD << "There is no external pose input ..." << ANSI_COLOR_RESET << std::endl;
+    }
+    else{
+        std::cout << ANSI_COLOR_GREEN_BOLD << "There is a external pose input ..." << ANSI_COLOR_RESET << std::endl;
+        std::cout << ANSI_COLOR_RED_BOLD << "Scan Context Relo is skipped" << ANSI_COLOR_RESET << std::endl;
+        PointType pt;
+        pt.x = initpose.x;
+        pt.y = initpose.y;
+        pt.z = initpose.z;
+
+        pointSearchIndGlobalMap.clear();
+        pointSearchSqDisGlobalMap.clear();
+        kdtreeGlobalMapPoses->setInputCloud(priorKnown->cloudKeyPoses3D);
+        kdtreeGlobalMapPoses->nearestKSearch(pt, 5, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap);
+        if(pointSearchSqDisGlobalMap[0] >= 5.0){   // FIXME: check 5.0
+            std::cout << ANSI_COLOR_RED_BOLD << "The external input may have problem !! " << ANSI_COLOR_RESET << std::endl;
+        }
+        else{
+            PointTypePose pt;
+            pt.x = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].x;
+            pt.y = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].y;
+            pt.z = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].z;
+            pt.roll = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].roll;
+            pt.pitch = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].pitch;
+            pt.yaw = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].yaw;
+
+            near_cloud->clear();
+            *near_cloud += *priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[0]].all_cloud;
+            tmp_cloud->clear();
+            tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[1]].all_cloud, &priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[1]]);
+            tmp_cloud = transformPointCloud(tmp_cloud, &pt);
+            *near_cloud += *tmp_cloud;
+            tmp_cloud->clear();
+            tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[2]].all_cloud, &priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[2]]);
+            tmp_cloud = transformPointCloud(tmp_cloud, &pt);
+            *near_cloud += *tmp_cloud;
+
+            std::cout << ANSI_COLOR_GREEN_BOLD << "The reloCloud is changed ..." << ANSI_COLOR_RESET << std::endl;
+            pt.x = 0.0;
+            pt.y = 0.0;
+            pt.z = 0.0;
+            pt.roll = 0.0;
+            pt.pitch = 0.0;
+            pt.yaw = -pt.yaw - initpose.yaw;
+            finalpose.yaw = pt.yaw - initpose.yaw;
+
+            reloCloud_res->clear();
+            *reloCloud_res += *transformPointCloud(reloCloud, &pt);
+        }
+    }
 
     // TODO: teaser ++ to get the precise initial pose in global map and reset it in the ieskf !!
+
 }
