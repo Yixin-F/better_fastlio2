@@ -19,8 +19,8 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/search/impl/kdtree.hpp>
 
-#include <teaser/matcher.h>
-#include <teaser/registration.h>
+#include "teaser/matcher.h"
+#include "teaser/registration.h"
 
 // FIXME: set your params
 // common
