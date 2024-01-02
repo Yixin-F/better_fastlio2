@@ -5,6 +5,7 @@
 #include <ikd-Tree/ikd_Tree.h>
 #include "../src/IMU_Processing.hpp"
 #include "../multi-session/Incremental_mapping.hpp"
+#include "../teaser-toolkit/fpfh_teaser.hpp"
 
 #include "../mutexDeque.h"
 #include "../tool_color_printf.h"

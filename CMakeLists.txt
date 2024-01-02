@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.2)
 project(fast_lio_sam)
 
-# SET(CMAKE_BUILD_TYPE "Debug")  
-
 ADD_COMPILE_OPTIONS(-std=c++17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
@@ -66,44 +64,8 @@ message(Eigen: ${EIGEN3_INCLUDE_DIR})
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package (GeographicLib REQUIRED)
-find_package(Ceres REQUIRED QUIET)
-find_package(gflags REQUIRED QUIET)
 find_package( GTSAMCMakeTools )
 find_package(GTSAM REQUIRED QUIET)
-
-include(ExternalProject)
-ExternalProject_Add(teaser
-  GIT_REPOSITORY https://github.com/koide3/TEASER-plusplus
-  GIT_TAG master
-  BUILD_IN_SOURCE
-  CMAKE_ARGS -DBUILD_TESTS=OFF -DBUILD_PYTHON_BINDINGS=OFF -DBUILD_DOC=OFF -DBUILD_TEASER_FPFH=ON -DCMAKE_INSTALL_PREFIX=${CATKIN_DEVEL_PREFIX}
-  INSTALL_COMMAND make install
-)
-
-set(TEASER_LIBRARIES
-  ${CATKIN_DEVEL_PREFIX}/lib/libpmc.so
-  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_registration.so
-  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_features.so
-)
-
-include_directories(
-	${catkin_INCLUDE_DIRS} 
-  ${EIGEN3_INCLUDE_DIR}
-  ${PCL_INCLUDE_DIRS}
-  ${PYTHON_INCLUDE_DIRS}
-  ${GTSAM_INCLUDE_DIR}
-  ${OpenCV_INCLUDE_DIRS}
-  ${CERES_INCLUDE_DIRS}
-  ${GeographicLib_INCLUDE_DIRS}
-  include)
-
-# link_directories(
-#   include
-#   ${PCL_LIBRARY_DIRS}
-#   ${GTSAM_LIBRARY_DIR}
-#   ${OpenCV_LIBRARY_DIRS}
-#   ${GeographicLib_LIBRARY_DIRS}
-# )
 
 add_message_files(
   FILES
@@ -129,7 +91,42 @@ generate_messages(
 catkin_package(
   CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime
   DEPENDS EIGEN3 PCL GTSAM
-  INCLUDE_DIRS
+  INCLUDE_DIRS include
+)
+
+include_directories(
+	${catkin_INCLUDE_DIRS} 
+  ${EIGEN3_INCLUDE_DIR}
+  ${PCL_INCLUDE_DIRS}
+  ${PYTHON_INCLUDE_DIRS}
+  ${GTSAM_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
+  ${GeographicLib_INCLUDE_DIRS}
+  include
+)
+
+link_directories(
+  include
+  ${PCL_LIBRARY_DIRS}
+  ${GTSAM_LIBRARY_DIR}
+  ${OpenCV_LIBRARY_DIRS}
+  ${GeographicLib_LIBRARY_DIRS}
+)
+
+message("Download Teaser ...")
+include(ExternalProject)
+ExternalProject_Add(teaser
+  GIT_REPOSITORY https://github.com/koide3/TEASER-plusplus
+  GIT_TAG master
+  BUILD_IN_SOURCE
+  CMAKE_ARGS -DBUILD_TESTS=OFF -DBUILD_PYTHON_BINDINGS=OFF -DBUILD_DOC=OFF -DBUILD_TEASER_FPFH=ON -DCMAKE_INSTALL_PREFIX=${CATKIN_DEVEL_PREFIX}
+  INSTALL_COMMAND make install
+)
+
+set(TEASER_LIBRARIES
+  ${CATKIN_DEVEL_PREFIX}/lib/libpmc.so
+  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_registration.so
+  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_features.so
 )
 
 add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
@@ -137,7 +134,7 @@ add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
 add_library(pose_estimator include/online-relo/pose_estimator.cpp include/sc-relo/Scancontext.cpp)
-add_library(fpfh_teaser include/teaser_toolkit/fpfh_teaser.cpp ${TEASER_LIBRARIES})
+add_library(fpfh_teaser include/teaser-toolkit/fpfh_teaser.cpp ${TEASER_LIBRARIES})
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)
@@ -150,4 +147,4 @@ target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHO
 
 # online relocalization
 add_executable(online_relo src/online_relocalization.cpp)
-target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}  pose_estimator ikd_Tree preprocess incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${CERES_LIBRARIES}  pose_estimator ikd_Tree preprocess incremental_mapping gtsam fpfh_teaser /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 

@@ -57,11 +57,10 @@ void pose_estimator::run(){
             break;
         ros::spinOnce();
 
-
-        // mtx_buffer.lock(); 
-        // initpose_flag = getInitPose();
-        // mtx_buffer.unlock();    
-        // sig_buffer.notify_all();
+        mtx_buffer.lock(); 
+        initpose_flag = getInitPose();
+        mtx_buffer.unlock();    
+        sig_buffer.notify_all();
         
         // if(initpose_flag){  //FIXME: how to transfer
         //     SO3 offset_rotation = fromTeaser.linear();
@@ -753,7 +752,7 @@ bool pose_estimator::getInitPose(){
             tmp_cloud = transformPointCloud(tmp_cloud, &pt);
             *near_cloud += *tmp_cloud;
 
-            std::cout << ANSI_COLOR_GREEN_BOLD << "The reloCloud is changed ..." << ANSI_COLOR_RESET << std::endl;
+            std::cout << ANSI_COLOR_GREEN << "The reloCloud is changed ..." << ANSI_COLOR_RESET << std::endl;
             pt.x = 0.0;
             pt.y = 0.0;
             pt.z = 0.0;
@@ -768,5 +767,31 @@ bool pose_estimator::getInitPose(){
     }
 
     // TODO: teaser ++ to get the precise initial pose in global map and reset it in the ieskf !!
+    fpfh_teaser teaser(reloCloud_res, near_cloud);
+    std::pair<double, Eigen::Isometry3f> results = teaser.match();
+    Eigen::Matrix4f transMatrix = results.second.matrix();
+    Eigen::Matrix3f rot = transMatrix.block<3, 3>(0, 0);
+    Eigen::Matrix<float, 1, 3> trans = transMatrix.block<1, 3>(3, 0);
 
+    Eigen::Matrix<float, 3, 1> euler = RotMtoEuler(rot);
+    finalpose.x = trans(0, 0);
+    finalpose.y = trans(0, 1);
+    finalpose.z = trans(0, 2);
+    finalpose.roll = euler(0, 0);
+    finalpose.pitch = euler(1, 0);
+    finalpose.yaw += euler(2, 0);
+
+    std::cout << ANSI_COLOR_GREEN_BOLD << "FPFH Teaser Results: " << "\n"
+                       << " x: " <<  finalpose.x << " y: " << finalpose.y << " z: " << finalpose.z
+                       << " roll: " << finalpose.roll << " pitch: " << finalpose.pitch << " yaw: " << finalpose.yaw
+                       << ANSI_COLOR_RESET << std::endl;
+
+    if(results.first <= 1.0){
+        return true;
+    }
+    else{
+        finalpose = initpose;
+        std::cout << ANSI_COLOR_RED << "FPFH Teaser is not precise !! We just use the mannual set ..." << ANSI_COLOR_RESET << std::endl;
+        return true;
+    }
 }
