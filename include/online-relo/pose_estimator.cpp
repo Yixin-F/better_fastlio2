@@ -1,5 +1,7 @@
 #include "pose_estimator.h"
 
+MultiSession::Session priorKnown(1, "priorMap", "/home/fyx/fastlio2/src/onine_relo", true);  // prior knowledge
+
 pose_estimator::pose_estimator(){
     nh.param<std::string>("common/rootDir", rootDir, " ");
     nh.param<std::string>("common/pointCloudTopic", pointCloudTopic, "points_raw");
@@ -49,13 +51,12 @@ pose_estimator::pose_estimator(){
 
     std::cout << ANSI_COLOR_GREEN << "rostopic is ok" << ANSI_COLOR_RESET << std::endl;
 
-    MultiSession::Session priorKnown_(1, "priorMap", rootDir, true);  // prior knowledge
+    // MultiSession::Session priorKnown._(1, "priorMap", "/home/fyx/fastlio2/src/onine_relo", true);  // prior knowledge
+    // std::cout << ANSI_COLOR_GREEN << "create prior session" << ANSI_COLOR_RESET << std::endl;
+    // priorKnown. = &priorKnown._;  // copy
 
-    std::cout << ANSI_COLOR_GREEN << "create prior session" << ANSI_COLOR_RESET << std::endl;
-
-    priorKnown = &priorKnown_;  // copy
-    *priorMap += *priorKnown->globalMap;
-    *priorPath += *priorKnown->cloudKeyPoses3D;
+    *priorMap += *priorKnown.globalMap;
+    *priorPath += *priorKnown.cloudKeyPoses3D;
     downSizeFilterSurf.setLeafSize(0.1, 0.1, 0.1);
 
     std::cout << ANSI_COLOR_GREEN << "prior knowledge is loaded" << ANSI_COLOR_RESET << std::endl;
@@ -501,7 +502,7 @@ void pose_estimator::recontructIKdTree(){
     pcl::PointCloud<PointType>::Ptr subMapKeyFramesDS(new pcl::PointCloud<PointType>());
 
     for(int i = 0; i < pointSearchIndGlobalMap.size(); i++){
-        *subMapKeyFrames += *transformPointCloud(priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[i]].all_cloud, &priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[i]]);
+        *subMapKeyFrames += *transformPointCloud(priorKnown.cloudKeyFrames[pointSearchIndGlobalMap[i]].all_cloud, &priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[i]]);
     }
 
     downSizeFilterSurf.setInputCloud(subMapKeyFrames);
@@ -686,7 +687,7 @@ bool pose_estimator::getInitPose(){
     double x_offset = state_point.pos(0);
     double y_offset = state_point.pos(1);
 
-    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1 & lidar_buffer.size() <= 10){   // FIXME: need to be checked  0.1
+    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1 & lidar_buffer.size() <= 5){   // FIXME: need to be checked  0.1
         if(cout_flg3 < 1)
             ROS_ERROR("wait for the boost ...");
         cout_flg3 ++;
@@ -697,34 +698,43 @@ bool pose_estimator::getInitPose(){
 
     pcl::PointCloud<PointType>::Ptr tmp_cloud(new pcl::PointCloud<PointType>());
 
-    for(int i = 0; i < ((lidar_buffer.size() - 1) >= 5 ? 5 : (lidar_buffer.size() - 1)); i++){
-        *reloCloud += *(lidar_buffer[i]);
-    }
+    // FIXME: 1) it is not true to use multiple scans
+    // for(int i = 0; i < ((lidar_buffer.size() - 2) >= 3 ? 3 : (lidar_buffer.size() - 2)); i++){
+    //     *reloCloud += *(lidar_buffer[i]);
+    // }
+    // downSizeFilterSurf.setInputCloud(reloCloud);
+    // downSizeFilterSurf.filter(*reloCloud);
+
+    // FIXME: 2) just use a single scan 
+    *reloCloud += *feats_down_body;
+
     std::cout << ANSI_COLOR_GREEN << "Generated RELO CLOUD size: " << reloCloud->points.size() << ANSI_COLOR_RESET << std::endl;
 
-    reloCloud->width = reloCloud->points.size();
-    reloCloud->height = 1;
-    Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(*reloCloud);  // FIXME: just use a single scan !! please stay static before get accuracy pose
+    Eigen::MatrixXd curSC = priorKnown.scManager.makeScancontext(*reloCloud);  // FIXME: just use a single scan !! please stay static before get accuracy pose
     std::cout << "current sc: " << curSC << std::endl;
-    Eigen::MatrixXd ringkey = priorKnown->scManager.makeRingkeyFromScancontext(curSC);
-    Eigen::MatrixXd sectorkey = priorKnown->scManager.makeSectorkeyFromScancontext(curSC);
+    Eigen::MatrixXd ringkey = priorKnown.scManager.makeRingkeyFromScancontext(curSC);
+    Eigen::MatrixXd sectorkey = priorKnown.scManager.makeSectorkeyFromScancontext(curSC);
+
     std::vector<float> polarcontext_invkey_vec = ScanContext::eig2stdvec(ringkey);
 
-    auto detectResult = priorKnown->scManager.detectLoopClosureIDBetweenSession(polarcontext_invkey_vec, curSC);  // idx & yaw_diff
+    auto detectResult = priorKnown.scManager.detectLoopClosureIDBetweenSession(polarcontext_invkey_vec, curSC);  // idx & yaw_diff
     
-    reloIdx = detectResult.first;
-    float yawDiff = detectResult.second;
+    // reloIdx = detectResult.first;
+    // float yawDiff = detectResult.second;
+
+    reloIdx = 1;
+    float yawDiff = 0.0;
 
     std::cout << ANSI_COLOR_GREEN << "Scan Context Relo at Idx: " << reloIdx << " in prior map; " 
                        " yaw diff: " << yawDiff << ANSI_COLOR_RESET << std::endl;
 
     PointTypePose diffPose;
-    diffPose.x = priorKnown->cloudKeyPoses6D->points[reloIdx].x;
-    diffPose.y = priorKnown->cloudKeyPoses6D->points[reloIdx].y;
-    diffPose.z = priorKnown->cloudKeyPoses6D->points[reloIdx].z;
-    diffPose.roll = priorKnown->cloudKeyPoses6D->points[reloIdx].roll;
-    diffPose.pitch = priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
-    diffPose.yaw = priorKnown->cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it "+" or "-"
+    diffPose.x = priorKnown.cloudKeyPoses6D->points[reloIdx].x;
+    diffPose.y = priorKnown.cloudKeyPoses6D->points[reloIdx].y;
+    diffPose.z = priorKnown.cloudKeyPoses6D->points[reloIdx].z;
+    diffPose.roll = priorKnown.cloudKeyPoses6D->points[reloIdx].roll;
+    diffPose.pitch = priorKnown.cloudKeyPoses6D->points[reloIdx].pitch;
+    diffPose.yaw = priorKnown.cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it "+" or "-"
 
     *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);  // just publish
 
@@ -739,22 +749,22 @@ bool pose_estimator::getInitPose(){
     // sub2map registeration
     near_cloud->clear();
     PointTypePose ptd;
-    ptd.x = -priorKnown->cloudKeyPoses6D->points[reloIdx].x;
-    ptd.y = -priorKnown->cloudKeyPoses6D->points[reloIdx].y;
-    ptd.z = -priorKnown->cloudKeyPoses6D->points[reloIdx].z;
-    ptd.roll = -priorKnown->cloudKeyPoses6D->points[reloIdx].roll;
-    ptd.pitch = -priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
-    ptd.yaw = -priorKnown->cloudKeyPoses6D->points[reloIdx].yaw;
-    *near_cloud += *priorKnown->cloudKeyFrames[reloIdx].all_cloud;
+    ptd.x = -priorKnown.cloudKeyPoses6D->points[reloIdx].x;
+    ptd.y = -priorKnown.cloudKeyPoses6D->points[reloIdx].y;
+    ptd.z = -priorKnown.cloudKeyPoses6D->points[reloIdx].z;
+    ptd.roll = -priorKnown.cloudKeyPoses6D->points[reloIdx].roll;
+    ptd.pitch = -priorKnown.cloudKeyPoses6D->points[reloIdx].pitch;
+    ptd.yaw = -priorKnown.cloudKeyPoses6D->points[reloIdx].yaw;
+    *near_cloud += *priorKnown.cloudKeyFrames[reloIdx].all_cloud;
     if(reloIdx - 1 > 0){
         tmp_cloud->clear();
-        tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[reloIdx - 1].all_cloud, &priorKnown->cloudKeyPoses6D->points[reloIdx - 1]);
+        tmp_cloud = transformPointCloud(priorKnown.cloudKeyFrames[reloIdx - 1].all_cloud, &priorKnown.cloudKeyPoses6D->points[reloIdx - 1]);
         tmp_cloud = transformPointCloud(tmp_cloud, &ptd);
         *near_cloud += *tmp_cloud;
     }
-    if(reloIdx + 1 <= priorKnown->cloudKeyPoses6D->points.size() - 1){
+    if(reloIdx + 1 <= priorKnown.cloudKeyPoses6D->points.size() - 1){
         tmp_cloud->clear();
-        tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[reloIdx + 1].all_cloud, &priorKnown->cloudKeyPoses6D->points[reloIdx + 1]);
+        tmp_cloud = transformPointCloud(priorKnown.cloudKeyFrames[reloIdx + 1].all_cloud, &priorKnown.cloudKeyPoses6D->points[reloIdx + 1]);
         tmp_cloud = transformPointCloud(tmp_cloud, &ptd);
         *near_cloud += *tmp_cloud;
     }
@@ -766,10 +776,12 @@ bool pose_estimator::getInitPose(){
                            <<  ANSI_COLOR_RESET << std::endl;
         ros::Duration(10).sleep();  // FIXME: check it
     }
-    if(initpose.x != 0 || initpose.yaw != 0){
-        useMannual = true;
-        std::cout << ANSI_COLOR_GREEN_BOLD << "Reveieve mannual input ..." << ANSI_COLOR_RESET << std::endl;
-    }
+
+    // TODO: set true
+    // if(initpose.x != 0 || initpose.yaw != 0){
+    //     useMannual = true;
+    //     std::cout << ANSI_COLOR_GREEN_BOLD << "Reveieve mannual input ..." << ANSI_COLOR_RESET << std::endl;
+    // }
 
     if(!useMannual){
         std::cout << ANSI_COLOR_RED_BOLD << "There is no external pose input ..." << ANSI_COLOR_RESET << std::endl;
@@ -785,28 +797,28 @@ bool pose_estimator::getInitPose(){
 
         pointSearchIndGlobalMap.clear();
         pointSearchSqDisGlobalMap.clear();
-        kdtreeGlobalMapPoses->setInputCloud(priorKnown->cloudKeyPoses3D);
+        kdtreeGlobalMapPoses->setInputCloud(priorKnown.cloudKeyPoses3D);
         kdtreeGlobalMapPoses->nearestKSearch(pt, 5, pointSearchIndGlobalMap, pointSearchSqDisGlobalMap);
         if(pointSearchSqDisGlobalMap[0] >= 5.0){   // FIXME: check 5.0
             std::cout << ANSI_COLOR_RED_BOLD << "The external input may have problem !! " << ANSI_COLOR_RESET << std::endl;
         }
         else{
             PointTypePose pt;
-            pt.x = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].x;
-            pt.y = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].y;
-            pt.z = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].z;
-            pt.roll = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].roll;
-            pt.pitch = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].pitch;
-            pt.yaw = -priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].yaw;
+            pt.x = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].x;
+            pt.y = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].y;
+            pt.z = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].z;
+            pt.roll = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].roll;
+            pt.pitch = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].pitch;
+            pt.yaw = -priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[0]].yaw;
 
             near_cloud->clear();
-            *near_cloud += *priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[0]].all_cloud;
+            *near_cloud += *priorKnown.cloudKeyFrames[pointSearchIndGlobalMap[0]].all_cloud;
             tmp_cloud->clear();
-            tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[1]].all_cloud, &priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[1]]);
+            tmp_cloud = transformPointCloud(priorKnown.cloudKeyFrames[pointSearchIndGlobalMap[1]].all_cloud, &priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[1]]);
             tmp_cloud = transformPointCloud(tmp_cloud, &pt);
             *near_cloud += *tmp_cloud;
             tmp_cloud->clear();
-            tmp_cloud = transformPointCloud(priorKnown->cloudKeyFrames[pointSearchIndGlobalMap[2]].all_cloud, &priorKnown->cloudKeyPoses6D->points[pointSearchIndGlobalMap[2]]);
+            tmp_cloud = transformPointCloud(priorKnown.cloudKeyFrames[pointSearchIndGlobalMap[2]].all_cloud, &priorKnown.cloudKeyPoses6D->points[pointSearchIndGlobalMap[2]]);
             tmp_cloud = transformPointCloud(tmp_cloud, &pt);
             *near_cloud += *tmp_cloud;
 

@@ -92,7 +92,7 @@ bool Localmap_Initialized = false;
 vector<BoxPointType> cub_needrm;  
 
 const float MOV_THRESHOLD = 1.5f;
-const float DET_RANGE = 300.0f;
+const float DET_RANGE = 260.0f;
 const double cube_len = 200.0;
 int process_increments = 0;
 
@@ -254,7 +254,6 @@ public:
     ros::Publisher pubLaserCloudFull;
     // ros::Publisher pubConstraintEdge;
 
-    MultiSession::Session *priorKnown;  // prior map
     PointTypePose initpose;
     PointTypePose finalpose;
     int reloIdx;

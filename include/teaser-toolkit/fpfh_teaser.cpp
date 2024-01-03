@@ -8,6 +8,12 @@ fpfh_teaser::fpfh_teaser(const pcl::PointCloud<PointType>::Ptr& source, const pc
                        << " MATCH_DISTANCE " << MATCH_DISTANCE << "\n"
                        << " FPFH_SEARCH_RADIUS " << FPFH_SEARCH_RADIUS << std::endl;
     
+    downSizeFilterSurf.setLeafSize(0.1, 0.1, 0.1);
+    downSizeFilterSurf.setInputCloud(source);
+    downSizeFilterSurf.filter(*source);
+    downSizeFilterSurf.setInputCloud(target);
+    downSizeFilterSurf.filter(*target);
+
     set_source(source);
     set_target(target);
     std::cout << " source cloud size: " << source->points.size() << "\n"
@@ -54,16 +60,21 @@ double fpfh_teaser::calc_matching_error(const pcl::PointCloud<PointType>::Ptr& c
 
 pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfh_teaser::extract_fpfh(const pcl::PointCloud<PointType>::Ptr& cloud){
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-    pcl::NormalEstimationOMP<PointType, pcl::Normal> nest;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZI>());
+    pcl::copyPointCloud(*cloud, *tmp);
+    pcl::NormalEstimationOMP<pcl::PointXYZI, pcl::Normal> nest;
     nest.setRadiusSearch(NORMAL_ESTIMATION_RADIUS);
-    nest.setInputCloud(cloud);
+    nest.setInputCloud(tmp);
     nest.compute(*normals);
 
     pcl::PointCloud<pcl::FPFHSignature33>::Ptr features(new pcl::PointCloud<pcl::FPFHSignature33>);
-    pcl::FPFHEstimationOMP<PointType, pcl::Normal, pcl::FPFHSignature33> fest;
+    pcl::FPFHEstimationOMP<pcl::PointXYZI, pcl::Normal, pcl::FPFHSignature33> fest;
+    fest.setInputCloud(tmp);
     fest.setRadiusSearch(FPFH_SEARCH_RADIUS);
     fest.setInputNormals(normals);
     fest.compute(*features);
+
+    std::cout << "fpfhs are extracted ... " << std::endl;
 
     return features;
 }
@@ -71,19 +82,21 @@ pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfh_teaser::extract_fpfh(const pcl::
 std::pair<double, Eigen::Isometry3f> fpfh_teaser::match(){
     auto fpfh_source = extract_fpfh(cloud_source);
     auto fpfh_target = extract_fpfh(cloud_target);
+    std::cout << "source :" << " fpfh: " << fpfh_source->size() << " cloud: " << cloud_source->size() << std::endl;
+    std::cout << "target :" << " fpfh: " << fpfh_target->size() << " cloud: " << cloud_target->size() << std::endl;
 
     teaser::PointCloud target_teaser, source_teaser;
     teaser::FPFHCloud target_fpfh, source_fpfh;
 
-    target_teaser.reserve(cloud_target->size());
-    target_fpfh.reserve(cloud_target->size());
+    // target_teaser.reserve(cloud_target->size());
+    // target_fpfh.reserve(cloud_target->size());
     for(int i = 0; i < cloud_target->size(); i++){
         target_teaser.push_back({cloud_target->at(i).x, cloud_target->at(i).y, cloud_target->at(i).z});
         target_fpfh.push_back(fpfh_target->at(i));
     }
 
-    source_teaser.reserve(cloud_source->size());
-    source_fpfh.reserve(cloud_source->size());
+    // source_teaser.reserve(cloud_source->size());
+    // source_fpfh.reserve(cloud_source->size());
     for(int i = 0; i < cloud_source->size(); i++){
         source_teaser.push_back({cloud_source->at(i).x, cloud_source->at(i).y, cloud_source->at(i).z});
         source_fpfh.push_back(fpfh_source->at(i));

@@ -76,7 +76,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
-find_package(PCL REQUIRED)
+find_package(PCL 1.12 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package (GeographicLib REQUIRED)
 find_package( GTSAMCMakeTools )

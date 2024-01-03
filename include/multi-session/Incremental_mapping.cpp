@@ -266,7 +266,7 @@ void MultiSession::Session::loadSessionGraph()
 // load map
 void MultiSession::Session::loadGlobalMap(){
     std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::io::loadPCDFile(mapfile_path, *tmp_cloud);
     pcl::copyPointCloud(*tmp_cloud, *globalMap);
     

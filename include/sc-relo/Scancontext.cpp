@@ -189,10 +189,10 @@ namespace ScanContext
     /**
      * @brief 输入一帧点云，生成Scan-Context
      *
-     * @param[in] _scan_down, SCPointType类型，是pcl::PointXYZI
+     * @param[in] _scan_down, PointType类型，是pcl::PointXYZI
      * @return MatrixXd, 生成的Scan-Context矩阵
      */
-    MatrixXd SCManager::makeScancontext(pcl::PointCloud<SCPointType> &_scan_down)
+    MatrixXd SCManager::makeScancontext(pcl::PointCloud<PointType> &_scan_down)
     {
         // TicToc t_making_desc;
 
@@ -205,11 +205,11 @@ namespace ScanContext
         // ring行、sector列的矩阵，和论文中一致
         MatrixXd desc = NO_POINT * MatrixXd::Ones(PC_NUM_RING, PC_NUM_SECTOR);
 
-        SCPointType pt;
+        PointType pt;
         float azim_angle, azim_range; // wihtin 2d plane
         int ring_idx, sctor_idx;
         // Step 2. 遍历每个点，往bin中赋值点云最大高度
-        for (int pt_idx = 0; pt_idx < num_pts_scan_down; pt_idx++)
+        for (size_t pt_idx = 0; pt_idx < num_pts_scan_down; pt_idx++)
         {
             pt.x = _scan_down.points[pt_idx].x;
             pt.y = _scan_down.points[pt_idx].y;
@@ -301,7 +301,7 @@ namespace ScanContext
      *
      * @param[in] _scan_down
      */
-    void SCManager::makeAndSaveScancontextAndKeys(pcl::PointCloud<SCPointType> &_scan_down)
+    void SCManager::makeAndSaveScancontextAndKeys(pcl::PointCloud<PointType> &_scan_down)
     {
         // Step 1. 对输入点云计算Scan-Context矩阵
         Eigen::MatrixXd sc = makeScancontext(_scan_down); // v1
@@ -562,7 +562,7 @@ namespace ScanContext
         }
     }
 
-    std::pair<int, float> SCManager::relocalize(pcl::PointCloud<SCPointType> &scan_down)
+    std::pair<int, float> SCManager::relocalize(pcl::PointCloud<PointType> &scan_down)
     {
         if (polarcontexts_.empty())
         {

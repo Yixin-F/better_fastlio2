@@ -18,14 +18,15 @@
 #include <pcl/features/fpfh_omp.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/search/impl/kdtree.hpp>
+#include <pcl/filters/voxel_grid.h>
 
 #include "teaser/matcher.h"
 #include "teaser/registration.h"
 
 // FIXME: set your params
 // common
-#define NORMAL_ESTIMATION_RADIUS (1.0)
-#define MATCH_DISTANCE (1.0)
+#define NORMAL_ESTIMATION_RADIUS (2.0)  // FIXME? ??
+#define MATCH_DISTANCE (2.0)
 #define FPFH_SEARCH_RADIUS (4.0)
 
 // fpfh correspondence
@@ -49,6 +50,7 @@ public:
     fpfh_teaser(const pcl::PointCloud<PointType>::Ptr& source, const pcl::PointCloud<PointType>::Ptr& target);
     ~fpfh_teaser() {}
 
+    pcl::VoxelGrid<PointType> downSizeFilterSurf; 
     pcl::KdTreeFLANN<PointType>::Ptr tree;
     pcl::PointCloud<PointType>::Ptr cloud_source;
     pcl::PointCloud<PointType>::Ptr cloud_target;

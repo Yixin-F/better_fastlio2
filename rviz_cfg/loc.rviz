@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Relo Original
+    SyncSource: Prior Map
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -210,7 +210,7 @@ Visualization Manager:
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
-      Max Color: 255; 255; 255
+      Max Color: 46; 52; 54
       Min Color: 0; 0; 0
       Name: Prior Map
       Position Transformer: XYZ
@@ -283,8 +283,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: -9999
-        Min Value: 9999
+        Max Value: 23.87850570678711
+        Min Value: -2.529841661453247
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -292,7 +292,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: AxisColor
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -307,7 +307,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -346,7 +346,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: ""
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -420,25 +420,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 91.84456634521484
+      Distance: 205.44830322265625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 8.914299011230469
-        Y: 15.737859725952148
-        Z: 3.6907541751861572
+        X: 40.324886322021484
+        Y: 7.366379737854004
+        Z: -7.260481357574463
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.1697967052459717
+      Pitch: 1.36479651927948
       Target Frame: velodyne
       Value: Orbit (rviz)
-      Yaw: 5.370274066925049
+      Yaw: 5.480276107788086
     Saved: ~
 Window Geometry:
   Displays:
@@ -456,5 +456,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 2004
-  X: 160
-  Y: 30
+  X: 67
+  Y: 27

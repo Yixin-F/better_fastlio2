@@ -32,7 +32,7 @@ using std::atan2;
 using std::cos;
 using std::sin;
 
-using SCPointType = pcl::PointXYZINormal; // using xyzinormal for fast-lio. but a user can exchange the original bin encoding function (i.e., max hegiht) to max intensity (for detail, refer 20 ICRA Intensity Scan Context)
+using PointType = pcl::PointXYZINormal; // using xyzinormal for fast-lio. but a user can exchange the original bin encoding function (i.e., max hegiht) to max intensity (for detail, refer 20 ICRA Intensity Scan Context)
 using KeyMat = std::vector<std::vector<float> >;
 using InvKeyTree = KDTreeVectorOfVectorsAdaptor< KeyMat, float >;
 
@@ -54,7 +54,7 @@ class SCManager
 public: 
     SCManager( ) = default; // reserving data space (of std::vector) could be considered. but the descriptor is lightweight so don't care.
 
-    Eigen::MatrixXd makeScancontext( pcl::PointCloud<SCPointType> & _scan_down );
+    Eigen::MatrixXd makeScancontext( pcl::PointCloud<PointType> & _scan_down );
     Eigen::MatrixXd makeRingkeyFromScancontext( Eigen::MatrixXd &_desc );
     Eigen::MatrixXd makeSectorkeyFromScancontext( Eigen::MatrixXd &_desc );
 
@@ -63,13 +63,13 @@ public:
     std::pair<double, int> distanceBtnScanContext ( MatrixXd &_sc1, MatrixXd &_sc2 ); // "D" (eq 6) in the original paper (IROS 18)
 
     // User-side API
-    void makeAndSaveScancontextAndKeys( pcl::PointCloud<SCPointType> & _scan_down );
+    void makeAndSaveScancontextAndKeys( pcl::PointCloud<PointType> & _scan_down );
     std::pair<int, float> detectClosestKeyframeID(int num_exclude_recent, const std::vector<float> &curr_key, Eigen::MatrixXd &curr_desc);
     std::pair<int, float> detectLoopClosureID( int num_exclude_recent = 50 ); // int: nearest node index, float: relative yaw  
 
     void saveCurrentSCD(const std::string &fileName, int num_digits = 6, const std::string &delimiter = " ");
     void loadPriorSCD(const std::string &path, int num_digits, int num_keyframe);
-    std::pair<int, float> relocalize(pcl::PointCloud<SCPointType> &_scan_down);
+    std::pair<int, float> relocalize(pcl::PointCloud<PointType> &_scan_down);
 
     // User-side API for multi-session
     void saveScancontextAndKeys( Eigen::MatrixXd _scd );
