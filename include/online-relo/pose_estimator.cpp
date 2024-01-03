@@ -1,9 +1,21 @@
 #include "pose_estimator.h"
 
-pose_estimator::pose_estimator(std::string priorPath){
+pose_estimator::pose_estimator(){
     nh.param<std::string>("common/rootDir", rootDir, " ");
-    nh.param<std::string>("location/pointCloudTopic", pointCloudTopic, "points_raw");
-    nh.param<std::string>("location/imuTopic", imuTopic, "/imu");
+    nh.param<std::string>("common/pointCloudTopic", pointCloudTopic, "points_raw");
+    nh.param<std::string>("common/imuTopic", imuTopic, "/imu");
+
+    nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, LIVOX);
+    nh.param<int>("preprocess/livox_type", p_pre->livox_type, LIVOX_CUS);
+    nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
+    nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
+    nh.param<int>("preprocess/scan_rate", p_pre->SCAN_RATE, 10);
+    nh.param<int>("preprocess/point_filter_num", p_pre->point_filter_num, 1);
+    nh.param<bool>("preprocess/feature_extract_enable", p_pre->feature_enabled, false);
+
+    nh.param<std::vector<double>>("mapping/extrinsic_T", extrinT, std::vector<double>());
+    nh.param<std::vector<double>>("mapping/extrinsic_R", extrinR, std::vector<double>());
+
     nh.param<double>("mapping/gyr_cov", gyr_cov, 0.1);
     nh.param<double>("mapping/acc_cov", acc_cov, 0.1);
     nh.param<double>("mapping/b_gyr_cov", b_gyr_cov, 0.0001);
@@ -25,7 +37,7 @@ pose_estimator::pose_estimator(std::string priorPath){
 
     std::cout << ANSI_COLOR_GREEN << "rostopic is ok" << ANSI_COLOR_RESET << std::endl;
 
-    MultiSession::Session priorKnown_(1, "priorMap", priorPath, true);  // prior knowledge
+    MultiSession::Session priorKnown_(1, "priorMap", rootDir, true);  // prior knowledge
     priorKnown = &priorKnown_;  // copy
     downSizeFilterSurf.setLeafSize(0.1, 0.1, 0.1);
 
@@ -51,6 +63,7 @@ pose_estimator::pose_estimator(std::string priorPath){
 
 void pose_estimator::run(){
     ros::Rate rate(500);
+
     bool status = ros::ok();
     while (status){
         if (flg_exit)
@@ -62,12 +75,20 @@ void pose_estimator::run(){
         mtx_buffer.unlock();    
         sig_buffer.notify_all();
         
-        // if(initpose_flag){  //FIXME: how to transfer
-        //     SO3 offset_rotation = fromTeaser.linear();
-        //     vect3 offset_translation = fromTeaser.translation();
-        //     pos_lid = offset_translation + offset_rotation * pos_lid;
-        //     initpose_flag = false;
-        // }
+        if(initpose_flag){  //FIXME: how to transfer
+            pcl::PointCloud<PointType>::Ptr pos_cloud(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointType>::Ptr pos_cloud_trans(new pcl::PointCloud<PointType>());
+            PointType pos;
+            pos.x = pos_lid(0);
+            pos.y = pos_lid(1);
+            pos.z = pos_lid(2);
+            pos_cloud->points.emplace_back(pos);
+            *pos_cloud_trans += *transformPointCloud(pos_cloud, &finalpose);
+            pos_lid(0) = pos_cloud_trans->points[0].x;
+            pos_lid(1) = pos_cloud_trans->points[0].y;
+            pos_lid(2) = pos_cloud_trans->points[0].z;
+            initpose_flag = false;
+        }
 
         if (sync_packages(Measures)){
             if (flg_first_scan){
@@ -173,17 +194,12 @@ void pose_estimator::run(){
             map_incremental(); // TODO: mapping
         }
 
-        publish_odometry(pubOdomAftMapped);
-
         t3 = omp_get_wtime();
-
-        publish_path(pubPath);
-
-        publish_frame_world(pubCurCloud); 
 
         status = ros::ok();
         rate.sleep();
     }
+
 }
 
 bool pose_estimator::sync_packages(MeasureGroup &meas){
@@ -472,7 +488,6 @@ void pose_estimator::recontructIKdTree(){
 
     featsFromMap->clear();  // publish kdtree
     featsFromMap->points = subMapKeyFramesDS->points;
-    publish_map(pubIkdTree);
 }
  
 void pose_estimator::pointBodyToWorld(PointType const *const pi, PointType *const po)
@@ -570,7 +585,6 @@ void pose_estimator::map_incremental()
     ikdtree.Add_Points(PointNoNeedDownsample, false);      
     add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
     kdtree_incremental_time = omp_get_wtime() - st_time;
-    publish_map(pubIkdTree);
 
     std::cout << "map incremental: " << " add_point_size  =  " << add_point_size << "\t"
                   << " kdtree_incremental_time   =  " << kdtree_incremental_time << std::endl;
@@ -641,9 +655,6 @@ bool pose_estimator::getInitPose(){
         return false;
     }
 
-    pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>);
-    pcl::PointCloud<PointType>::Ptr reloCloud_res(new pcl::PointCloud<PointType>);
-    pcl::PointCloud<PointType>::Ptr near_cloud(new pcl::PointCloud<PointType>());
     pcl::PointCloud<PointType>::Ptr tmp_cloud(new pcl::PointCloud<PointType>());
 
     for(int i = 0; i < ((lidar_buffer.size() - 2) >= 5 ? 5 : (lidar_buffer.size() - 2)); i++){
@@ -670,12 +681,9 @@ bool pose_estimator::getInitPose(){
     diffPose.pitch = priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
     diffPose.yaw = priorKnown->cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it 
 
-    pcl::PointCloud<PointType>::Ptr reloCloud_diff(new pcl::PointCloud<PointType>());
     *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);
 
-    // TODO: publish relocloud 
-    publishCloud(&pubReloMap, reloCloud_diff, ros::Time::now(), "base_link");  // TODO: put it into an another thread
-
+    
     diffPose.x = 0.0;
     diffPose.y = 0.0;
     diffPose.z = 0.0;
@@ -786,6 +794,8 @@ bool pose_estimator::getInitPose(){
                        << " roll: " << finalpose.roll << " pitch: " << finalpose.pitch << " yaw: " << finalpose.yaw
                        << ANSI_COLOR_RESET << std::endl;
 
+    *final_cloud += *transformPointCloud(reloCloud, &finalpose);
+
     if(results.first <= 1.0){
         return true;
     }
@@ -793,5 +803,27 @@ bool pose_estimator::getInitPose(){
         finalpose = initpose;
         std::cout << ANSI_COLOR_RED << "FPFH Teaser is not precise !! We just use the mannual set ..." << ANSI_COLOR_RESET << std::endl;
         return true;
+    }
+}
+
+void pose_estimator::publishThread(){
+    ros::Rate rate(5);
+    while(ros::ok()){
+        ros::spinOnce();
+        publish_odometry(pubOdomAftMapped);
+        publish_path(pubPath);
+        publish_frame_world(pubCurCloud); 
+        publish_map(pubIkdTree);
+        
+        // TODO: publish relocloud 
+        publishCloud(&pubReloMap, reloCloud, ros::Time::now(), "base_link");  
+        publishCloud(&pubReloDiffMap, reloCloud_diff, ros::Time::now(), "base_link");   // sc
+        publishCloud(&pubReloResMap, reloCloud_res, ros::Time::now(), "base_link");  // to res
+        publishCloud(&pubReloNearMap, near_cloud, ros::Time::now(), "base_link");  // near
+        publishCloud(&pubReloFinalMap, final_cloud, ros::Time::now(), "base_link");  // final
+        publishCloud(&pubPriorMap, priorKnown->globalMap, ros::Time::now(), "base_link");  
+        publishCloud(&pubPriorPath, priorKnown->cloudKeyPoses3D, ros::Time::now(), "base_link");  
+
+        rate.sleep();
     }
 }

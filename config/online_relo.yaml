@@ -1,34 +1,24 @@
 common:
-  rootDir: "/home/fyx/fastlio2/src/onine_relo/"
-  pointCloudTopic:  "velodyne_points" #"/os_cloud_node/points" #"velodyne_points"    "points_raw"     rslidar_points      # Point cloud data
+  rootDir: "/home/fyx/fastlio2/src/onine_relo"
+  pointCloudTopic:  "/os1_points" #"/os_cloud_node/points" #"velodyne_points"    "points_raw"     rslidar_points      # Point cloud data
   imuTopic: "/imu/data" #"/os_cloud_node/imu" #"imu_data" #"imu_raw"          # IMU data
+  use_lio: true
 
+preprocess:
+  lidar_type: 2                            # lidar sensor type, either 'Velodyne' or 'Ouster' 'Robosense' 'Livox'
+  livox_type: 1                # 1 for LIVOX_CUS
+  scan_line:  64
+  blind: 4
+  feature_enabled: false  # bool
+  point_filter_num: 1 
+  scan_rate: 10 
 
-feature_extract:
-  lidarFrame: "base_link"
-
-  # Sensor Settings
-  sensor: velodyne #velodyne                            # lidar sensor type, either 'velodyne' or 'ouster' 'robosense' 'livox'
-  N_SCAN: 32                                  # number of lidar channel (i.e.,Velodyne/Ouster/Robosense: 16, 32, 64, 128,Livox Horizon:6)
-  Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048,Livox Horizon: 4000)
-  downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
-  lidarMinRange: 1.0                          # default: 1.0, minimum lidar range to be used
-  lidarMaxRange: 1000.0                       # default: 1000.0, maximum lidar range to be used
-
-  # LOAM feature threshold
-  edgeThreshold: 1.0
-  surfThreshold: 0.1
-  edgeFeatureMinValidNum: 10
-  surfFeatureMinValidNum: 100
-
-  # voxel filter paprams
-  odometrySurfLeafSize: 0.5                     # default: 0.4 - outdoor, 0.2 - indoor  only use surf ds here
-
-
-location:
-  pointCloudTopic: "/laser_cloud_filtered"  # reset them in cpp
-  imuTopic: "/imu/data"
-  IMU_Mode: 2  # 0-not use imu, 1-use imu remove rotation distort, 2-tightly coupled imu
-  use_lio: false
-  corner_leaf_: 0.4
-  surf_leaf_: 0.5
+mapping:
+  extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu
+  extrinsic_R: [ -1, 0, 0, 
+                 0, -1, 0, 
+                 0, 0, 1]
+  acc_cov: 0.009939570888238808e-03
+  gyr_cov: 0.005636343949698187e-03
+  b_acc_cov: 0.64356659353532566e-03
+  b_gyr_cov: 0.35640318696367613e-03

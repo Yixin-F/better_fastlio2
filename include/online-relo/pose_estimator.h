@@ -27,19 +27,24 @@ int kdtree_delete_counter = 0, feats_down_size = 0, kdtree_size_st = 0, add_poin
 double kdtree_delete_time = 0.0, kdtree_incremental_time = 0.0;
 double filter_size_map_min = 0.2;
 
-bool flg_EKF_converged, EKF_stop_flg = 0; 
-double gyr_cov = 0.1, acc_cov = 0.1, b_gyr_cov = 0.0001, b_acc_cov = 0.0001;
+bool flg_EKF_converged, EKF_stop_flg = 0;
 double res_mean_last = 0.05, total_residual = 0.0;
 int effct_feat_num = 0;
 double match_time = 0, solve_time = 0, solve_const_H_time = 0;
 bool point_selected_surf[100000] = {0};
-float res_last[100000] = {0.0};
-
-vector<double> extrinT(3, 0.0);            
-vector<double> extrinR(9, 0.0);  
+float res_last[100000] = {0.0}; 
 
 double epsi[23] = {0.001};
 const int NUM_MAX_ITERATIONS = 4;
+
+std::string rootDir;
+std::string pointCloudTopic;
+std::string imuTopic;
+
+double gyr_cov = 0.1, acc_cov = 0.1, b_gyr_cov = 0.0001, b_acc_cov = 0.0001;
+
+std::vector<double> extrinT(3, 0.0);            
+std::vector<double> extrinR(9, 0.0); 
 
 V3F XAxisPoint_body(LIDAR_SP_LEN, 0.0, 0.0);
 V3F XAxisPoint_world(LIDAR_SP_LEN, 0.0, 0.0);
@@ -67,6 +72,12 @@ pcl::PointCloud<PointType>::Ptr featsFromMap(new pcl::PointCloud<PointType>());
 pcl::PointCloud<PointType>::Ptr normvec(new pcl::PointCloud<PointType>(100000, 1));
 pcl::PointCloud<PointType>::Ptr laserCloudOri(new pcl::PointCloud<PointType>(100000, 1)); 
 pcl::PointCloud<PointType>::Ptr corr_normvect(new pcl::PointCloud<PointType>(100000, 1)); 
+
+pcl::PointCloud<PointType>::Ptr reloCloud_diff(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>);
+pcl::PointCloud<PointType>::Ptr reloCloud_res(new pcl::PointCloud<PointType>);
+pcl::PointCloud<PointType>::Ptr near_cloud(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr final_cloud(new pcl::PointCloud<PointType>());
 
 vector<vector<int>> pointSearchInd_surf;     
 vector<PointVector> Nearest_Points;
@@ -220,21 +231,22 @@ class pose_estimator{
 public:
     ros::NodeHandle nh;
 
-    std::string rootDir;
-    std::string pointCloudTopic;
-    std::string imuTopic;
-
     ros::Subscriber subCloud;
     ros::Subscriber subIMU;
     ros::Subscriber subPose;
     ros::Subscriber subSrv;
     ros::Publisher pubPriorMap;
+    ros::Publisher pubPriorPath;
     ros::Publisher pubReloMap;
+    ros::Publisher pubReloDiffMap;
+    ros::Publisher pubReloResMap;
+    ros::Publisher pubReloNearMap;
+    ros::Publisher pubReloFinalMap;
     ros::Publisher pubOdomAftMapped;
     ros::Publisher pubCurCloud;
     ros::Publisher pubPath;
     ros::Publisher pubIkdTree;
-    ros::Publisher pubLoopConstraintEdge;
+    // ros::Publisher pubConstraintEdge;
 
     MultiSession::Session *priorKnown;  // prior map
     PointTypePose initpose;
@@ -243,7 +255,7 @@ public:
     Eigen::Isometry3f fromTeaser;
     bool initpose_flag = false;
 
-    pose_estimator(std::string priorPath);  // TODO: give initial pose
+    pose_estimator(); 
     ~pose_estimator(){}
 
     void cloudCBK();
@@ -269,6 +281,8 @@ public:
     void publish_path(const ros::Publisher pubPath);
     void publish_frame_world(const ros::Publisher &pubLaserCloudFull);
     bool easyToRelo();
+
+    void publishThread();
 
     template <typename T>
     void set_posestamp(T &out)

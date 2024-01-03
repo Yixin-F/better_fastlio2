@@ -27,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: global_corner_map
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -39,29 +39,18 @@ Visualization Manager:
       Displays:
         - Class: rviz/TF
           Enabled: true
+          Filter (blacklist): ""
+          Filter (whitelist): ""
           Frame Timeout: 15
           Frames:
             All Enabled: true
-            base_link:
-              Value: true
-            os_sensor:
-              Value: true
-            velodyne:
-              Value: true
-            world:
-              Value: true
           Marker Scale: 10
           Name: TF
           Show Arrows: false
           Show Axes: true
           Show Names: true
           Tree:
-            world:
-              base_link:
-                os_sensor:
-                  {}
-                velodyne:
-                  {}
+            {}
           Update Interval: 0
           Value: true
         - Alpha: 0.5
@@ -299,7 +288,7 @@ Visualization Manager:
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: world
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -323,7 +312,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 155.66152954101562
+      Distance: 274.32879638671875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -338,10 +327,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5497963428497314
+      Pitch: 1.3397966623306274
       Target Frame: velodyne
       Value: Orbit (rviz)
-      Yaw: 4.710267543792725
+      Yaw: 4.695267200469971
     Saved: ~
 Window Geometry:
   Displays:
