@@ -30,6 +30,7 @@ MultiSession::Session::Session(int _idx, std::string _name, std::string _session
     
     const float kICPFilterSize = 0.2; // TODO move to yaml 
     downSizeFilterICP.setLeafSize(kICPFilterSize, kICPFilterSize, kICPFilterSize);
+    downSizeFilterMap.setLeafSize(0.5, 0.5, 0.5);
 } // ctor
 
 // read poses in graph
@@ -54,8 +55,8 @@ void MultiSession::Session::initKeyPoses(void){
 
         PointType thisPose3D;
         thisPose3D.x = pose.translation().x();
-        thisPose3D.y = pose.translation().x();
-        thisPose3D.z = pose.translation().x();
+        thisPose3D.y = pose.translation().y();
+        thisPose3D.z = pose.translation().z();
 
         cloudKeyPoses3D->push_back(thisPose3D);   
     }
@@ -265,13 +266,21 @@ void MultiSession::Session::loadSessionGraph()
 // load map
 void MultiSession::Session::loadGlobalMap(){
     std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
-    pcl::io::loadPCDFile(mapfile_path, *globalMap);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::io::loadPCDFile(mapfile_path, *tmp_cloud);
+    pcl::copyPointCloud(*tmp_cloud, *globalMap);
+    
+    downSizeFilterMap.setInputCloud(globalMap);
+    downSizeFilterMap.filter(*globalMap);
+
+    globalMap->width = tmp_cloud->points.size();
+    globalMap->height = 1;
+    // pcl::io::loadPCDFile(mapfile_path, *globalMap);
 
     ROS_INFO_STREAM("\033[1;32m Map loaded: " << mapfile_path << "\033[0m");
 }
 
 // IncreMapping
-
 gtsam::Pose3 MultiSession::IncreMapping::getPoseOfIsamUsingKey (const gtsam::Key _key) {
     const gtsam::Value& pose_value = isam->calculateEstimate(_key);
     auto p_pose_value = dynamic_cast<const gtsam::GenericValue<gtsam::Pose3>*>(&pose_value);

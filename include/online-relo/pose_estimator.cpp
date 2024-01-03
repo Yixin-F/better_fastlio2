@@ -32,13 +32,30 @@ pose_estimator::pose_estimator(){
 
     subPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 1, &pose_estimator::poseCBK, this);  // interaction in rviz
     subSrv = nh.subscribe<std_msgs::Bool>("/posesrv", 1, &pose_estimator::mannualCBK, this);   // TODO: external signal from your terminal
+    // FIXME: rostopic pub /posesrv std_msgs/Bool "data: 1.0"
 
     pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
+    pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/priorMap", 5);
+    pubPriorPath = nh.advertise<sensor_msgs::PointCloud2>("/priorPath", 5);
+    pubReloMap = nh.advertise<sensor_msgs::PointCloud2>("/reloMap_Ori", 5);
+    pubReloDiffMap = nh.advertise<sensor_msgs::PointCloud2>("/reloMap_SC", 5);
+    pubReloResMap = nh.advertise<sensor_msgs::PointCloud2>("/reloMap_Res", 5);
+    pubReloNearMap = nh.advertise<sensor_msgs::PointCloud2>("/nearMap_Res", 5);
+    pubReloFinalMap = nh.advertise<sensor_msgs::PointCloud2>("/reloMap_Final", 5);
+    pubCurCloud = nh.advertise<sensor_msgs::PointCloud2>("/cloudCur", 5);
+    pubIkdTree = nh.advertise<sensor_msgs::PointCloud2>("/kdTree", 5);
+    pubPath = nh.advertise<nav_msgs::Path>("/path", 1e00000);
+    pubLaserCloudFull = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000); 
 
     std::cout << ANSI_COLOR_GREEN << "rostopic is ok" << ANSI_COLOR_RESET << std::endl;
 
     MultiSession::Session priorKnown_(1, "priorMap", rootDir, true);  // prior knowledge
+
+    std::cout << ANSI_COLOR_GREEN << "create prior session" << ANSI_COLOR_RESET << std::endl;
+
     priorKnown = &priorKnown_;  // copy
+    *priorMap += *priorKnown->globalMap;
+    *priorPath += *priorKnown->cloudKeyPoses3D;
     downSizeFilterSurf.setLeafSize(0.1, 0.1, 0.1);
 
     std::cout << ANSI_COLOR_GREEN << "prior knowledge is loaded" << ANSI_COLOR_RESET << std::endl;
@@ -63,17 +80,14 @@ pose_estimator::pose_estimator(){
 
 void pose_estimator::run(){
     ros::Rate rate(500);
-
+    // std::cout << ANSI_COLOR_RED_BOLD << "please be static (but you can implement rotation), wait for the initial pose ..." << ANSI_COLOR_RESET << std::endl;
     bool status = ros::ok();
     while (status){
         if (flg_exit)
             break;
         ros::spinOnce();
 
-        mtx_buffer.lock(); 
         initpose_flag = getInitPose();
-        mtx_buffer.unlock();    
-        sig_buffer.notify_all();
         
         if(initpose_flag){  //FIXME: how to transfer
             pcl::PointCloud<PointType>::Ptr pos_cloud(new pcl::PointCloud<PointType>());
@@ -88,6 +102,7 @@ void pose_estimator::run(){
             pos_lid(1) = pos_cloud_trans->points[0].y;
             pos_lid(2) = pos_cloud_trans->points[0].z;
             initpose_flag = false;
+            loc_flag = true;
         }
 
         if (sync_packages(Measures)){
@@ -109,7 +124,9 @@ void pose_estimator::run(){
         pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
 
         if (feats_undistort->empty() || (feats_undistort == NULL)){
-            ROS_WARN("No point, skip this scan!\n");
+            if(cout_flg4 < 1)
+                ROS_WARN("No point, skip this scan!\n");
+            cout_flg4 ++;
             continue;
         }
 
@@ -122,6 +139,8 @@ void pose_estimator::run(){
 
         t1 = omp_get_wtime();  
         feats_down_size = feats_down_body->points.size();
+
+        std::cout << "current raw cloud size: " << feats_down_size << std::endl;
 
         if (ikdtree.Root_Node == nullptr)
         {
@@ -144,7 +163,9 @@ void pose_estimator::run(){
         /*** ICP and iterated Kalman filter update ***/
         if (feats_down_size < 5)
         {
-            ROS_WARN("No point, skip this scan!\n");
+            if(cout_flg5 < 1)
+                ROS_WARN("No point, skip this scan!\n");
+            cout_flg5 ++;
             continue;
         }
 
@@ -185,16 +206,21 @@ void pose_estimator::run(){
 
         bool useRelo = easyToRelo();
 
-        if(useRelo){
-            std::cout << "relo mode" << std::endl;
+        if(useRelo & loc_flag){
+            std::cout << ANSI_COLOR_GREEN << "RELO MODE" << ANSI_COLOR_RESET << std::endl;
             recontructIKdTree();  // TODO: get current measurement in prior map
         }
         else{
-            std::cout << "lio mode" << std::endl;
+            std::cout << ANSI_COLOR_GREEN << "LIO MODE" << ANSI_COLOR_RESET << std::endl;
             map_incremental(); // TODO: mapping
         }
 
         t3 = omp_get_wtime();
+
+        publish_odometry(pubOdomAftMapped);
+        publish_path(pubPath);
+        publish_frame_world(pubCurCloud); 
+        publish_map(pubIkdTree);
 
         status = ros::ok();
         rate.sleep();
@@ -389,6 +415,7 @@ void pose_estimator::poseCBK(const geometry_msgs::PoseWithCovarianceStampedConst
 
 void pose_estimator::mannualCBK(const std_msgs::Bool::ConstPtr &msg){
     useMannual = msg->data;
+    std::cout << ANSI_COLOR_GREEN << "revieve mannual flag comes, please set your pose ... " << ANSI_COLOR_RESET << std::endl;
 }
 
 void pose_estimator::lasermap_fov_segment(){
@@ -571,11 +598,14 @@ void pose_estimator::map_incremental()
                     break;
                 }
             }
-            if (need_add)
+            if (need_add){
+                featsFromMap->points.push_back(feats_down_world->points[i]);
                 PointToAdd.push_back(feats_down_world->points[i]);
+            }
         }
         else
         {
+            featsFromMap->points.push_back(feats_down_world->points[i]);
             PointToAdd.push_back(feats_down_world->points[i]);
         }
     }
@@ -585,6 +615,9 @@ void pose_estimator::map_incremental()
     ikdtree.Add_Points(PointNoNeedDownsample, false);      
     add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
     kdtree_incremental_time = omp_get_wtime() - st_time;
+
+    downSizeFilterSurf.setInputCloud(featsFromMap);
+    downSizeFilterSurf.filter(*featsFromMap);
 
     std::cout << "map incremental: " << " add_point_size  =  " << add_point_size << "\t"
                   << " kdtree_incremental_time   =  " << kdtree_incremental_time << std::endl;
@@ -607,6 +640,7 @@ void pose_estimator::publish_frame_world(const ros::Publisher &pubLaserCloudFull
     {
         pointBodyToWorld(&laserCloudFullRes->points[i], &laserCloudWorld->points[i]);
     }
+    *full_cloud += *laserCloudWorld;
     sensor_msgs::PointCloud2 laserCloudmsg;
     pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
     laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
@@ -618,7 +652,7 @@ bool pose_estimator::easyToRelo(){
     pointSearchIndGlobalMap.clear();
     pointSearchSqDisGlobalMap.clear();
 
-    kdtreeGlobalMapPoses->setInputCloud(priorKnown->cloudKeyPoses3D);  // find nearest poses in prior map
+    kdtreeGlobalMapPoses->setInputCloud(priorPath);  // find nearest poses in prior map
     PointType curPose;
     curPose.x = transformTobeMapped[3];
     curPose.y = transformTobeMapped[4];
@@ -635,33 +669,43 @@ bool pose_estimator::easyToRelo(){
 
 bool pose_estimator::getInitPose(){
     TicToc time_count;
-
-    std::cout << ANSI_COLOR_RED_BOLD << "please be static (but you can implement rotation), wait for the initial pose ..." << ANSI_COLOR_RESET << std::endl;
     if(imu_buffer.empty() || lidar_buffer.empty()){
-        ROS_ERROR("There are no imu or lidar inputs, can not get initial pose ...");
+        if(cout_flg1 < 1)
+            ROS_ERROR("There are no imu or lidar inputs, can not get initial pose ...");
+        cout_flg1 ++;
         return false;
     }
     
     if(lidar_buffer.size() <= 5){  // FIXME: need to be checked  5
-        ROS_ERROR("There are no enough lidar inputs, please wait ...");
+        if(cout_flg2 < 1)
+            ROS_ERROR("There are no enough lidar inputs, please wait ...");
+        cout_flg2 ++;
         return false;
     }
 
     double x_offset = state_point.pos(0);
     double y_offset = state_point.pos(1);
 
-    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1 || lidar_buffer.size() > 10){   // FIXME: need to be checked  0.1
-        ROS_ERROR("wait for the boost ...");
+    if(std::sqrt(x_offset * x_offset + y_offset * y_offset) <= 0.1 & lidar_buffer.size() <= 10){   // FIXME: need to be checked  0.1
+        if(cout_flg3 < 1)
+            ROS_ERROR("wait for the boost ...");
+        cout_flg3 ++;
         return false;
     }
 
+    std::cout << ANSI_COLOR_GREEN << "It is ready to get initial pose ..." << ANSI_COLOR_RESET << std::endl;
+
     pcl::PointCloud<PointType>::Ptr tmp_cloud(new pcl::PointCloud<PointType>());
 
-    for(int i = 0; i < ((lidar_buffer.size() - 2) >= 5 ? 5 : (lidar_buffer.size() - 2)); i++){
-        *reloCloud += *lidar_buffer[i];
+    for(int i = 0; i < ((lidar_buffer.size() - 1) >= 5 ? 5 : (lidar_buffer.size() - 1)); i++){
+        *reloCloud += *(lidar_buffer[i]);
     }
+    std::cout << ANSI_COLOR_GREEN << "Generated RELO CLOUD size: " << reloCloud->points.size() << ANSI_COLOR_RESET << std::endl;
 
+    reloCloud->width = reloCloud->points.size();
+    reloCloud->height = 1;
     Eigen::MatrixXd curSC = priorKnown->scManager.makeScancontext(*reloCloud);  // FIXME: just use a single scan !! please stay static before get accuracy pose
+    std::cout << "current sc: " << curSC << std::endl;
     Eigen::MatrixXd ringkey = priorKnown->scManager.makeRingkeyFromScancontext(curSC);
     Eigen::MatrixXd sectorkey = priorKnown->scManager.makeSectorkeyFromScancontext(curSC);
     std::vector<float> polarcontext_invkey_vec = ScanContext::eig2stdvec(ringkey);
@@ -671,7 +715,8 @@ bool pose_estimator::getInitPose(){
     reloIdx = detectResult.first;
     float yawDiff = detectResult.second;
 
-    std::cout << ANSI_COLOR_GREEN << "Scan Context Relo at Idx: " << reloIdx << " in prior map" << ANSI_COLOR_RESET << std::endl;
+    std::cout << ANSI_COLOR_GREEN << "Scan Context Relo at Idx: " << reloIdx << " in prior map; " 
+                       " yaw diff: " << yawDiff << ANSI_COLOR_RESET << std::endl;
 
     PointTypePose diffPose;
     diffPose.x = priorKnown->cloudKeyPoses6D->points[reloIdx].x;
@@ -679,19 +724,19 @@ bool pose_estimator::getInitPose(){
     diffPose.z = priorKnown->cloudKeyPoses6D->points[reloIdx].z;
     diffPose.roll = priorKnown->cloudKeyPoses6D->points[reloIdx].roll;
     diffPose.pitch = priorKnown->cloudKeyPoses6D->points[reloIdx].pitch;
-    diffPose.yaw = priorKnown->cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it 
+    diffPose.yaw = priorKnown->cloudKeyPoses6D->points[reloIdx].yaw + yawDiff;  // FIXME: check it "+" or "-"
 
-    *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);
+    *reloCloud_diff += *transformPointCloud(reloCloud, &diffPose);  // just publish
 
-    
     diffPose.x = 0.0;
     diffPose.y = 0.0;
     diffPose.z = 0.0;
     diffPose.roll = 0.0;
-    diffPose.yaw = yawDiff;
-    finalpose.yaw = yawDiff;
-    *reloCloud_res += *transformPointCloud(reloCloud, &diffPose);
+    diffPose.yaw = yawDiff; // compensatation for yaw
+    finalpose.yaw = yawDiff; // FIXME: add
+    *reloCloud_res += *transformPointCloud(reloCloud, &diffPose); // for registeration
 
+    // sub2map registeration
     near_cloud->clear();
     PointTypePose ptd;
     ptd.x = -priorKnown->cloudKeyPoses6D->points[reloIdx].x;
@@ -717,9 +762,13 @@ bool pose_estimator::getInitPose(){
     // TODO: check and should we select the mannual rivz pose
     if(!useMannual){
         std::cout << ANSI_COLOR_GREEN_BOLD << "Are you sure that we do not need a external pose set from rviz ? " << "\n"
-                           <<"If you wanna a mannual set, please give that in 10 s in rviz ..."
+                           <<"If you wanna a mannual set, please give it in 10s in rviz ..."
                            <<  ANSI_COLOR_RESET << std::endl;
-        ros::Duration(20).sleep();  // FIXME: check it
+        ros::Duration(10).sleep();  // FIXME: check it
+    }
+    if(initpose.x != 0 || initpose.yaw != 0){
+        useMannual = true;
+        std::cout << ANSI_COLOR_GREEN_BOLD << "Reveieve mannual input ..." << ANSI_COLOR_RESET << std::endl;
     }
 
     if(!useMannual){
@@ -728,6 +777,7 @@ bool pose_estimator::getInitPose(){
     else{
         std::cout << ANSI_COLOR_GREEN_BOLD << "There is a external pose input ..." << ANSI_COLOR_RESET << std::endl;
         std::cout << ANSI_COLOR_RED_BOLD << "Scan Context Relo is skipped" << ANSI_COLOR_RESET << std::endl;
+
         PointType pt;
         pt.x = initpose.x;
         pt.y = initpose.y;
@@ -761,12 +811,13 @@ bool pose_estimator::getInitPose(){
             *near_cloud += *tmp_cloud;
 
             std::cout << ANSI_COLOR_GREEN << "The reloCloud is changed ..." << ANSI_COLOR_RESET << std::endl;
+
             pt.x = 0.0;
             pt.y = 0.0;
             pt.z = 0.0;
             pt.roll = 0.0;
             pt.pitch = 0.0;
-            pt.yaw = -pt.yaw - initpose.yaw;
+            pt.yaw = pt.yaw - initpose.yaw;  // FIXME: check it
             finalpose.yaw = pt.yaw - initpose.yaw;
 
             reloCloud_res->clear();
@@ -794,13 +845,13 @@ bool pose_estimator::getInitPose(){
                        << " roll: " << finalpose.roll << " pitch: " << finalpose.pitch << " yaw: " << finalpose.yaw
                        << ANSI_COLOR_RESET << std::endl;
 
-    *final_cloud += *transformPointCloud(reloCloud, &finalpose);
-
     if(results.first <= 1.0){
+        *final_cloud += *transformPointCloud(reloCloud, &finalpose);
         return true;
     }
     else{
         finalpose = initpose;
+        *final_cloud += *transformPointCloud(reloCloud, &finalpose);
         std::cout << ANSI_COLOR_RED << "FPFH Teaser is not precise !! We just use the mannual set ..." << ANSI_COLOR_RESET << std::endl;
         return true;
     }
@@ -810,19 +861,16 @@ void pose_estimator::publishThread(){
     ros::Rate rate(5);
     while(ros::ok()){
         ros::spinOnce();
-        publish_odometry(pubOdomAftMapped);
-        publish_path(pubPath);
-        publish_frame_world(pubCurCloud); 
-        publish_map(pubIkdTree);
         
         // TODO: publish relocloud 
-        publishCloud(&pubReloMap, reloCloud, ros::Time::now(), "base_link");  
-        publishCloud(&pubReloDiffMap, reloCloud_diff, ros::Time::now(), "base_link");   // sc
-        publishCloud(&pubReloResMap, reloCloud_res, ros::Time::now(), "base_link");  // to res
-        publishCloud(&pubReloNearMap, near_cloud, ros::Time::now(), "base_link");  // near
-        publishCloud(&pubReloFinalMap, final_cloud, ros::Time::now(), "base_link");  // final
-        publishCloud(&pubPriorMap, priorKnown->globalMap, ros::Time::now(), "base_link");  
-        publishCloud(&pubPriorPath, priorKnown->cloudKeyPoses3D, ros::Time::now(), "base_link");  
+        publishCloud(&pubReloMap, reloCloud, ros::Time::now(), "camera_init");  
+        publishCloud(&pubReloDiffMap, reloCloud_diff, ros::Time::now(), "camera_init");   // sc
+        publishCloud(&pubReloResMap, reloCloud_res, ros::Time::now(), "camera_init");  // to res
+        publishCloud(&pubReloNearMap, near_cloud, ros::Time::now(), "camera_init");  // near
+        publishCloud(&pubReloFinalMap, final_cloud, ros::Time::now(), "camera_init");  // final
+        publishCloud(&pubPriorMap, priorMap, ros::Time::now(), "camera_init");  // too large
+        publishCloud(&pubPriorPath, priorPath, ros::Time::now(), "camera_init");  
+        publishCloud(&pubLaserCloudFull, full_cloud, ros::Time::now(), "camera_init");  
 
         rate.sleep();
     }

@@ -29,6 +29,7 @@ class Session{
 
     std::vector<KeyFrame> cloudKeyFrames;
     pcl::VoxelGrid<PointType> downSizeFilterICP;
+    pcl::VoxelGrid<PointType> downSizeFilterMap;
 
     ScanContext::SCManager scManager;
 
@@ -38,6 +39,7 @@ class Session{
     void allocateMemory(){
       cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());
       originPoses6D.reset(new pcl::PointCloud<PointTypePose>());
+      cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
       globalMap.reset(new pcl::PointCloud<PointType>());
     }
 

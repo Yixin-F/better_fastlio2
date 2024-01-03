@@ -1,0 +1,3 @@
+repository='https://github.com/koide3/TEASER-plusplus'
+module=''
+tag='origin'

@@ -25,7 +25,7 @@ bool time_sync_en = false, timediff_set_flg = false;
 bool lidar_pushed, flg_first_scan = true, flg_EKF_inited;
 int kdtree_delete_counter = 0, feats_down_size = 0, kdtree_size_st = 0, add_point_size = 0;
 double kdtree_delete_time = 0.0, kdtree_incremental_time = 0.0;
-double filter_size_map_min = 0.2;
+double filter_size_map_min = 0.1;
 
 bool flg_EKF_converged, EKF_stop_flg = 0;
 double res_mean_last = 0.05, total_residual = 0.0;
@@ -36,6 +36,8 @@ float res_last[100000] = {0.0};
 
 double epsi[23] = {0.001};
 const int NUM_MAX_ITERATIONS = 4;
+
+int cout_flg1 = 0, cout_flg2 = 0, cout_flg3 = 0, cout_flg4 = 0, cout_flg5 = 0;
 
 std::string rootDir;
 std::string pointCloudTopic;
@@ -78,6 +80,9 @@ pcl::PointCloud<PointType>::Ptr reloCloud(new pcl::PointCloud<PointType>);
 pcl::PointCloud<PointType>::Ptr reloCloud_res(new pcl::PointCloud<PointType>);
 pcl::PointCloud<PointType>::Ptr near_cloud(new pcl::PointCloud<PointType>());
 pcl::PointCloud<PointType>::Ptr final_cloud(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr priorMap(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr priorPath(new pcl::PointCloud<PointType>());
+pcl::PointCloud<PointType>::Ptr full_cloud(new pcl::PointCloud<PointType>());
 
 vector<vector<int>> pointSearchInd_surf;     
 vector<PointVector> Nearest_Points;
@@ -246,6 +251,7 @@ public:
     ros::Publisher pubCurCloud;
     ros::Publisher pubPath;
     ros::Publisher pubIkdTree;
+    ros::Publisher pubLaserCloudFull;
     // ros::Publisher pubConstraintEdge;
 
     MultiSession::Session *priorKnown;  // prior map
@@ -254,6 +260,7 @@ public:
     int reloIdx;
     Eigen::Isometry3f fromTeaser;
     bool initpose_flag = false;
+    bool loc_flag = false;
 
     pose_estimator(); 
     ~pose_estimator(){}
