@@ -1,4 +1,4 @@
-# FAST_LIO_SAM
+# FAST_LIO_SAM by Yixin-F
 
 ## Object detect : YOLO 
 ## Front_end : fastlio2
