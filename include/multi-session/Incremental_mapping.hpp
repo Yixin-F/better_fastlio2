@@ -34,7 +34,7 @@ class Session{
     ScanContext::SCManager scManager;
 
     Session(){}
-    Session(int _idx, std::string _name, std::string _session_dir, bool _is_base_session);
+    Session(int _idx, std::string _name, std::string _session_dir, bool _is_base_session); 
 
     void allocateMemory(){
       cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());

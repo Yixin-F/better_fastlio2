@@ -78,7 +78,15 @@
         "forward_list": "cpp",
         "hash_map": "cpp",
         "hash_set": "cpp",
-        "eigen": "cpp"
+        "eigen": "cpp",
+        "shared_mutex": "cpp",
+        "cfenv": "cpp",
+        "valarray": "cpp",
+        "variant": "cpp",
+        "bit": "cpp",
+        "core": "cpp",
+        "numericaldiff": "cpp",
+        "specialfunctions": "cpp"
     },
     "cmake.configureOnOpen": false
 }

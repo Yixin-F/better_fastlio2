@@ -29,7 +29,8 @@
 #include <eigen_conversions/eigen_msg.h>
 
 // opencv
-#include <opencv/cv.h>
+// #include <opencv/cv.h>
+#include <opencv2/imgproc.hpp>  // opencv4
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -712,36 +713,41 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     return cloudOut;
 }
 
-// // cannot use
-// pcl::PointCloud<PointType>::Ptr convertPointTypePose(const Trajectory& pose_){
-//     pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
+PointTypePose getBodyPose(const PointTypePose& body, const PointTypePose& other){
+    PointTypePose bodyPose;
+    bodyPose.x = -body.x + other.x;
+    bodyPose.y = -body.y + other.y;
+    bodyPose.z = -body.z + other.z;
+    bodyPose.roll = -body.roll + other.roll;
+    bodyPose.pitch = -body.pitch + other.pitch;
+    bodyPose.yaw = -body.yaw + other.yaw;
 
-//     int numberOfCores = 8; // TODO: move to yaml
-//     #pragma omp parallel for num_threads(numberOfCores)
-//     for(int i = 0; i < pose_->points.size(); i++){
-//         PointType pt;
-//         pt.x = pose_->points[i].x;
-//         pt.y = pose_->points[i].y;
-//         pt.z = pose_->points[i].z;
-//         convert->points.emplace_back(pt);
-//     }
-//     return convert;
-// }
+    return bodyPose;
+}
 
-// pcl::PointCloud<PointType>::Ptr convertPointXYZI(const pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud_){
-//     pcl::PointCloud<PointType>::Ptr convert(new pcl::PointCloud<PointType>());
+PointTypePose addPose(const PointTypePose& body, const PointTypePose& other){
+    PointTypePose bodyPose;
+    bodyPose.x = body.x + other.x;
+    bodyPose.y = body.y + other.y;
+    bodyPose.z = body.z + other.z;
+    bodyPose.roll = body.roll + other.roll;
+    bodyPose.pitch = body.pitch + other.pitch;
+    bodyPose.yaw = body.yaw + other.yaw;
 
-//     int numberOfCores = 8; // TODO: move to yaml
-//     #pragma omp parallel for num_threads(numberOfCores)
-//     for(int i = 0; i < cloud_->points.size(); i++){
-//         PointType pt;
-//         pt.x = cloud_->points[i].x;
-//         pt.y = cloud_->points[i].y;
-//         pt.z = cloud_->points[i].z;
-//         convert->points.emplace_back(pt);
-//     }
-//     return convert;
-// }
+    return bodyPose;
+}
+
+PointTypePose inversePose(const PointTypePose& body){
+    PointTypePose bodyPose;
+    bodyPose.x = -body.x;
+    bodyPose.y = -body.y;
+    bodyPose.z = -body.z;
+    bodyPose.roll = -body.roll;
+    bodyPose.pitch = -body.pitch;
+    bodyPose.yaw = -body.yaw;
+
+    return bodyPose;
+}
 
 std::vector<std::pair<double, int>> sortVecWithIdx(const std::vector<double>& arr) 
 { 

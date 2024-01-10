@@ -33,20 +33,20 @@ else()
   add_definitions(-DMP_PROC_NUM=1)
 endif()
 
-include(ExternalProject)
-ExternalProject_Add(teaser
-  GIT_REPOSITORY https://github.com/koide3/TEASER-plusplus
-  GIT_TAG master
-  BUILD_IN_SOURCE
-  CMAKE_ARGS -DBUILD_TESTS=OFF -DBUILD_PYTHON_BINDINGS=OFF -DBUILD_DOC=OFF -DBUILD_TEASER_FPFH=ON -DCMAKE_INSTALL_PREFIX=${CATKIN_DEVEL_PREFIX}
-  INSTALL_COMMAND make install
-)
+# include(ExternalProject)
+# ExternalProject_Add(teaser
+#   GIT_REPOSITORY https://github.com/koide3/TEASER-plusplus
+#   GIT_TAG master
+#   BUILD_IN_SOURCE
+#   CMAKE_ARGS -DBUILD_TESTS=OFF -DBUILD_PYTHON_BINDINGS=OFF -DBUILD_DOC=OFF -DBUILD_TEASER_FPFH=ON -DCMAKE_INSTALL_PREFIX=${CATKIN_DEVEL_PREFIX}
+#   INSTALL_COMMAND make install
+# )
 
-set(TEASER_LIBRARIES
-  ${CATKIN_DEVEL_PREFIX}/lib/libpmc.so
-  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_registration.so
-  ${CATKIN_DEVEL_PREFIX}/lib/libteaser_features.so
-)
+# set(TEASER_LIBRARIES
+#   ${CATKIN_DEVEL_PREFIX}/lib/libpmc.so
+#   ${CATKIN_DEVEL_PREFIX}/lib/libteaser_registration.so
+#   ${CATKIN_DEVEL_PREFIX}/lib/libteaser_features.so
+# )
 
 find_package(OpenMP QUIET)
 if (OPENMP_FOUND)
@@ -76,7 +76,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
-find_package(PCL 1.12 REQUIRED)
+find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package (GeographicLib REQUIRED)
 find_package( GTSAMCMakeTools )
@@ -120,26 +120,13 @@ include_directories(
   include
 )
 
-# link_directories(
-#   include
-#   ${PCL_LIBRARY_DIRS}
-#   ${GTSAM_LIBRARY_DIR}
-#   ${OpenCV_LIBRARY_DIRS}
-#   ${GeographicLib_LIBRARY_DIRS}
-# )
-
-# set(TEASER_LIBRARIES
-#   /home/fyx/fastlio2/src/YOLO-fast-lio-sam/ThirdParty/TEASER-plusplus/lib/libpmc.so
-#   /home/fyx/fastlio2/src/YOLO-fast-lio-sam/ThirdParty/TEASER-plusplus/lib/libteaser_registration.so
-#   /home/fyx/fastlio2/src/YOLO-fast-lio-sam/ThirdParty/TEASER-plusplus/lib/libteaser_features.so
-# )
 
 add_library(ikd_Tree include/ikd-Tree/ikd_Tree.cpp)
 add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
-add_library(fpfh_teaser include/teaser-toolkit/fpfh_teaser.cpp)
-add_library(pose_estimator include/online-relo/pose_estimator.cpp include/sc-relo/Scancontext.cpp)
+# add_library(fpfh_teaser include/teaser-toolkit/fpfh_teaser.cpp)
+add_library(pose_estimator include/online-relo/pose_estimator_new.cpp include/sc-relo/Scancontext.cpp)
 
 # fastlio2 mapping
 add_executable(fastlio_sam_mapping src/laserMapping.cpp)
@@ -152,4 +139,5 @@ target_link_libraries(multi_session ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHO
 
 # online relocalization
 add_executable(online_relo src/online_relocalization.cpp)
-target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${TEASER_LIBRARIES}  pose_estimator ikd_Tree preprocess incremental_mapping gtsam fpfh_teaser /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+# target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES} ${TEASER_LIBRARIES}  pose_estimator ikd_Tree preprocess incremental_mapping gtsam fpfh_teaser /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a) 
+target_link_libraries(online_relo ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES}  ${GeographicLib_LIBRARIES}  ${OpenCV_LIBRARIES}  pose_estimator incremental_mapping gtsam /usr/lib/gcc/x86_64-linux-gnu/7/libstdc++fs.a)

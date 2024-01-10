@@ -16,7 +16,7 @@
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 
-#include "nanoflann.hpp"
+#include "../nanoflann.hpp"
 #include "KDTreeVectorOfVectorsAdaptor.h"
 
 #include "../tictoc.hpp"

@@ -30,7 +30,7 @@ MultiSession::Session::Session(int _idx, std::string _name, std::string _session
     
     const float kICPFilterSize = 0.2; // TODO move to yaml 
     downSizeFilterICP.setLeafSize(kICPFilterSize, kICPFilterSize, kICPFilterSize);
-    downSizeFilterMap.setLeafSize(0.5, 0.5, 0.5);
+    downSizeFilterMap.setLeafSize(0.8, 0.8, 0.8);
 } // ctor
 
 // read poses in graph
@@ -266,16 +266,10 @@ void MultiSession::Session::loadSessionGraph()
 // load map
 void MultiSession::Session::loadGlobalMap(){
     std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
-    pcl::PointCloud<pcl::PointXYZI>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile(mapfile_path, *tmp_cloud);
-    pcl::copyPointCloud(*tmp_cloud, *globalMap);
+    pcl::io::loadPCDFile(mapfile_path, *globalMap);
     
     downSizeFilterMap.setInputCloud(globalMap);
     downSizeFilterMap.filter(*globalMap);
-
-    globalMap->width = tmp_cloud->points.size();
-    globalMap->height = 1;
-    // pcl::io::loadPCDFile(mapfile_path, *globalMap);
 
     ROS_INFO_STREAM("\033[1;32m Map loaded: " << mapfile_path << "\033[0m");
 }
