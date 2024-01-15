@@ -4,6 +4,7 @@
 #include "ICP.h"
 #include "io_pc.h"
 #include "FRICP.h"
+#include "../tool_color_printf.h"
 
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar, 3, Eigen::Dynamic> Vertices;
@@ -21,6 +22,7 @@ public:
                   << "5: Our Robust ICP point to plane\n6: Sparse ICP\n7: Sparse ICP point to plane\n" 
                   << "6: search radius(< 0.5) for difference detection"<< std::endl;
         method = Method(mode_);
+        std::cout << ANSI_COLOR_GREEN << "register by Method " << mode_ << ANSI_COLOR_RESET << std::endl;
     }
     ~Registeration() {}
 
@@ -60,6 +62,7 @@ public:
         spars.print_icpn = false;
 
         ///--- Execute registration
+        std::cout << "execute registration -> ";
         FRICP<3> fricp;
         double begin_reg = omp_get_wtime();
         double converge_rmse = 0;

@@ -32,6 +32,7 @@ public:
     ros::Publisher pubPriorPath;
     ros::Publisher pubInitCloud;
     ros::Publisher pubReloCloud;
+    ros::Publisher pubNearCloud;
     ros::Publisher pubMeasurementEdge;
     ros::Publisher pubPath;
 
@@ -39,6 +40,7 @@ public:
     pcl::PointCloud<PointType>::Ptr priorPath;
     pcl::PointCloud<PointType>::Ptr reloCloud;
     pcl::PointCloud<PointType>::Ptr initCloud;
+    pcl::PointCloud<PointType>::Ptr nearCloud;
 
     PointTypePose externalPose;
     PointTypePose initPose;
@@ -57,12 +59,15 @@ public:
     geometry_msgs::PoseStamped msg_body_pose; 
     std::deque<PointTypePose> reloPoseBuffer;
 
-    MultiSession::Session *priorKnown;
-    Registeration *reg;
+    std::vector<MultiSession::Session> sessions;
+    std::vector<Registeration> reg;
 
     bool buffer_flg = true;
-    bool global_flg = true;
+    bool global_flg = false;
     bool external_flg = false;
+    bool sc_flg = false;
+    int cout_count = 0;
+    int cout_count_ = 0;
 
     pose_estimator();
     ~pose_estimator() {}

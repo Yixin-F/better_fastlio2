@@ -4,7 +4,7 @@ common:
     camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 
-    rootDir: "/home/fyx/fastlio2/src/data/"
+    rootDir: "/home/yixin-f/fast-lio2/src/data/"
     savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
     savePCDDirectory: "PCDs/"        
     saveSCD: true 
@@ -53,7 +53,7 @@ mapping:
 ikdtree:
     max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    filter_size_map_min: 0.1
+    filter_size_map_min: 0.2
 
 loop:
     loopClosureEnableFlag: true
