@@ -700,7 +700,7 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     Eigen::Affine3f transCur = pcl::getTransformation(transformIn->x, transformIn->y, transformIn->z, 
                                                 transformIn->roll, transformIn->pitch, transformIn->yaw);
     
-    int numberOfCores = 8; // TODO: move to yaml
+    int numberOfCores = 12; // TODO: move to yaml
     #pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < cloudSize; ++i)
     {
@@ -713,40 +713,37 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     return cloudOut;
 }
 
-PointTypePose getBodyPose(const PointTypePose& body, const PointTypePose& other){
-    PointTypePose bodyPose;
-    bodyPose.x = -body.x + other.x;
-    bodyPose.y = -body.y + other.y;
-    bodyPose.z = -body.z + other.z;
-    bodyPose.roll = -body.roll + other.roll;
-    bodyPose.pitch = -body.pitch + other.pitch;
-    bodyPose.yaw = -body.yaw + other.yaw;
-
-    return bodyPose;
+template<typename CloudT> 
+void transformPointCloud(const CloudT& cloudIn_, const Eigen::Affine3f& transCur_, CloudT& cloudOut_){
+    int cloudSize = cloudIn_->points.size();
+    cloudOut_->points.resize(cloudSize);
+    
+    int numberOfCores = 12; // TODO: move to yaml
+    #pragma omp parallel for num_threads(numberOfCores)
+    for(int i = 0; i < cloudSize; i++){
+        cloudOut_->points[i].x = transCur_(0,0) * cloudIn_->points[i].x + transCur_(0,1) * cloudIn_->points[i].y + transCur_(0,2) * cloudIn_->points[i].z + transCur_(0,3);
+        cloudOut_->points[i].y = transCur_(1,0) * cloudIn_->points[i].x + transCur_(1,1) * cloudIn_->points[i].y + transCur_(1,2) * cloudIn_->points[i].z + transCur_(1,3);
+        cloudOut_->points[i].z = transCur_(2,0) * cloudIn_->points[i].x + transCur_(2,1) * cloudIn_->points[i].y + transCur_(2,2) * cloudIn_->points[i].z + transCur_(2,3);
+        cloudOut_->points[i].intensity = cloudIn_->points[i].intensity;
+    }
 }
 
-PointTypePose addPose(const PointTypePose& body, const PointTypePose& other){
-    PointTypePose bodyPose;
-    bodyPose.x = body.x + other.x;
-    bodyPose.y = body.y + other.y;
-    bodyPose.z = body.z + other.z;
-    bodyPose.roll = body.roll + other.roll;
-    bodyPose.pitch = body.pitch + other.pitch;
-    bodyPose.yaw = body.yaw + other.yaw;
-
-    return bodyPose;
+pcl::PointCloud<PointType>::Ptr getBodyCloud(const pcl::PointCloud<PointType>::Ptr& cloud, const PointTypePose& body, const PointTypePose& other){
+    pcl::PointCloud<PointType>::Ptr cloud_trans(new pcl::PointCloud<PointType>());
+    Eigen::Affine3f trans_body = pcl::getTransformation(body.x, body.y, body.z, body.roll, body.pitch, body.yaw);
+    Eigen::Affine3f trans_other = pcl::getTransformation(other.x, other.y, other.z, other.roll, other.pitch, other.yaw);
+    Eigen::Affine3f trans_diff = trans_body.inverse() * trans_other;
+    transformPointCloud(cloud, trans_diff, cloud_trans);
+    return cloud_trans;
 }
 
-PointTypePose inversePose(const PointTypePose& body){
-    PointTypePose bodyPose;
-    bodyPose.x = -body.x;
-    bodyPose.y = -body.y;
-    bodyPose.z = -body.z;
-    bodyPose.roll = -body.roll;
-    bodyPose.pitch = -body.pitch;
-    bodyPose.yaw = -body.yaw;
-
-    return bodyPose;
+pcl::PointCloud<PointType>::Ptr getAddCloud(const pcl::PointCloud<PointType>::Ptr& cloud, const PointTypePose& body, const PointTypePose& other){
+    pcl::PointCloud<PointType>::Ptr cloud_trans(new pcl::PointCloud<PointType>());
+    Eigen::Affine3f trans_body = pcl::getTransformation(body.x, body.y, body.z, body.roll, body.pitch, body.yaw);
+    Eigen::Affine3f trans_other = pcl::getTransformation(other.x, other.y, other.z, other.roll, other.pitch, other.yaw);
+    Eigen::Affine3f trans_diff = trans_body * trans_other;
+    transformPointCloud(cloud, trans_diff, cloud_trans);
+    return cloud_trans;
 }
 
 std::vector<std::pair<double, int>> sortVecWithIdx(const std::vector<double>& arr) 

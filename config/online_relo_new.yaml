@@ -5,4 +5,4 @@ relo:
     searchDis: 5.0
     searchNum: 2
     trustDis: 5.0
-    regMode: 5
+    regMode: 1  # (0~7), but methods 4, 5 and 7 need normal information

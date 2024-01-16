@@ -20,7 +20,7 @@ public:
         std::cout << "Method :\n"
                   << "0: ICP\n1: AA-ICP\n2: Our Fast ICP\n3: Our Robust ICP\n4: ICP Point-to-plane\n"
                   << "5: Our Robust ICP point to plane\n6: Sparse ICP\n7: Sparse ICP point to plane\n" 
-                  << "6: search radius(< 0.5) for difference detection"<< std::endl;
+                  << "search radius(< 0.5) for difference detection"<< std::endl;
         method = Method(mode_);
         std::cout << ANSI_COLOR_GREEN << "register by Method " << mode_ << ANSI_COLOR_RESET << std::endl;
     }
@@ -102,7 +102,7 @@ public:
             {
                 pars.f = ICP::NONE;
                 pars.use_AA = false;
-                if(normal_target.size()==0)
+                if(normal_target.size() == 0)
                 {
                     std::cout << "Warning! The target model without normals can't run Point-to-plane method!" << std::endl;
                     exit(0);
@@ -116,7 +116,7 @@ public:
                 pars.nu_end_k = 1.0/6;
                 pars.f = ICP::WELSCH;
                 pars.use_AA = true;
-                if(normal_target.size()==0)
+                if(normal_target.size()== 0)
                 {
                     std::cout << "Warning! The target model without normals can't run Point-to-plane method!" << std::endl;
                     exit(0);
@@ -133,7 +133,7 @@ public:
             }   
             case SICPPPL:
             {   
-                if(normal_target.size()==0)
+                if(normal_target.size() == 0)
                 {
                     std::cout << "Warning! The target model without normals can't run Point-to-plane method!" << std::endl;
                     exit(0);
@@ -147,12 +147,13 @@ public:
         time = end_reg - begin_reg;
         std::cout << "Registration cost(ms): " << time << std::endl;
 
-        vertices_source = scale * vertices_source;
+        // vertices_source = scale * vertices_source;
         Eigen::Affine3d res_T;
         res_T.linear() = res_trans.block(0,0,3,3);
         res_T.translation() = res_trans.block(0,3,3,1);
         res_trans.block(0,3,3,1) *= scale;
-        // out_trans << res_trans << std::endl;
+        std::cout << "scale: " << scale << std::endl;
+        std::cout << "res_trans: " << res_trans << std::endl;
 
         return res_trans;
     }

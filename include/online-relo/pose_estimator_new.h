@@ -40,6 +40,7 @@ public:
     pcl::PointCloud<PointType>::Ptr priorPath;
     pcl::PointCloud<PointType>::Ptr reloCloud;
     pcl::PointCloud<PointType>::Ptr initCloud;
+    pcl::PointCloud<PointType>::Ptr initCloud_;
     pcl::PointCloud<PointType>::Ptr nearCloud;
 
     PointTypePose externalPose;
@@ -61,6 +62,7 @@ public:
 
     std::vector<MultiSession::Session> sessions;
     std::vector<Registeration> reg;
+    std::pair<int, float> detectResult;
 
     bool buffer_flg = true;
     bool global_flg = false;
