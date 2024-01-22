@@ -828,13 +828,6 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
 {
     nearKeyframes->clear();
     int cloudSize = copy_cloudKeyPoses6D->size();
-    PointTypePose keyPose_inverse;
-    keyPose_inverse.x = -copy_cloudKeyPoses6D->points[key].x;
-    keyPose_inverse.y = -copy_cloudKeyPoses6D->points[key].y;
-    keyPose_inverse.z = -copy_cloudKeyPoses6D->points[key].z;
-    keyPose_inverse.roll = -copy_cloudKeyPoses6D->points[key].roll;
-    keyPose_inverse.pitch = -copy_cloudKeyPoses6D->points[key].pitch;
-    keyPose_inverse.yaw = -copy_cloudKeyPoses6D->points[key].yaw;
     // searchNum是搜索范围,遍历帧的范围
     for (int i = -searchNum; i <= searchNum; ++i)
     {
@@ -847,14 +840,7 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
             *nearKeyframes += *surfCloudKeyFrames[keyNear]; // cur点云本身保持不变
         }
         else{
-            PointTypePose nearKeyPose;
-            nearKeyPose.x = keyPose_inverse.x + copy_cloudKeyPoses6D->points[keyNear].x;
-            nearKeyPose.y = keyPose_inverse.y + copy_cloudKeyPoses6D->points[keyNear].y;
-            nearKeyPose.z = keyPose_inverse.z + copy_cloudKeyPoses6D->points[keyNear].z;
-            nearKeyPose.roll = keyPose_inverse.roll + copy_cloudKeyPoses6D->points[keyNear].roll;
-            nearKeyPose.pitch = keyPose_inverse.pitch + copy_cloudKeyPoses6D->points[keyNear].pitch;
-            nearKeyPose.yaw = keyPose_inverse.yaw + copy_cloudKeyPoses6D->points[keyNear].yaw;
-            *nearKeyframes += *transformPointCloud(surfCloudKeyFrames[keyNear], &nearKeyPose); // TODO: fast-lio没有进行特征提取,默认点云就是surf
+            *nearKeyframes += *getBodyCloud(surfCloudKeyFrames[keyNear], copy_cloudKeyPoses6D->points[key], copy_cloudKeyPoses6D->points[keyNear]); // TODO: fast-lio没有进行特征提取,默认点云就是surf
         }
     }
     if (nearKeyframes->empty())
@@ -2405,6 +2391,11 @@ int main(int argc, char **argv)
         string all_points_dir(rootDir + file_name);
         pcl::PCDWriter pcd_writer;
         cout << "current scan saved to PCD/" << file_name << endl;
+        pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;   
+        downSizeFilterGlobalMapKeyFrames.setLeafSize(1.0, 1.0, 1.0); 
+        downSizeFilterGlobalMapKeyFrames.setInputCloud(pcl_wait_save);
+        downSizeFilterGlobalMapKeyFrames.filter(*pcl_wait_save);
+        // pcl::io::savePCDFileASCII(all_points_dir, *pcl_wait_save);
         pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
     }
 

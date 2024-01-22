@@ -45,6 +45,12 @@ public:
 
     PointTypePose externalPose;
     PointTypePose initPose;
+    std::vector<double> extrinT_;
+    std::vector<double> extrinR_;
+    Eigen::Vector3d extrinT;
+    Eigen::Matrix3d extrinR;
+    PointTypePose pose_zero;
+    PointTypePose pose_ext;
 
     std::vector<int> idxVec;
     std::vector<float> disVec;

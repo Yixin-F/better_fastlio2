@@ -54,6 +54,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/registration/icp.h>
 #include <pcl/range_image/range_image.h>
+#include <pcl/common/centroid.h>
 
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>

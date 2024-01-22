@@ -6,3 +6,8 @@ relo:
     searchNum: 2
     trustDis: 5.0
     regMode: 1  # (0~7), but methods 4, 5 and 7 need normal information
+
+    extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu
+    extrinsic_R: [ -1, 0, 0, 
+                    0, -1, 0, 
+                    0, 0, 1]

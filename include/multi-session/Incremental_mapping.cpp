@@ -43,8 +43,8 @@ void MultiSession::Session::initKeyPoses(void){
         gtsam::Pose3 pose = node.initial;
 
         thisPose6D.x = pose.translation().x();
-        thisPose6D.y = pose.translation().x();
-        thisPose6D.z = pose.translation().x();
+        thisPose6D.y = pose.translation().y();
+        thisPose6D.z = pose.translation().z();
         thisPose6D.intensity = node_idx; // TODO
         thisPose6D.roll  = pose.rotation().roll();
         thisPose6D.pitch = pose.rotation().pitch();
@@ -266,9 +266,7 @@ void MultiSession::Session::loadSessionGraph()
 // load map
 void MultiSession::Session::loadGlobalMap(){
     std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
-    pcl::PointCloud<pcl::PointXYZI>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZI>());
-    pcl::io::loadPCDFile(mapfile_path, *tmp);
-    pcl::copyPointCloud(*tmp, *globalMap);
+    pcl::io::loadPCDFile(mapfile_path, *globalMap);
     
     downSizeFilterMap.setInputCloud(globalMap);
     downSizeFilterMap.filter(*globalMap);
