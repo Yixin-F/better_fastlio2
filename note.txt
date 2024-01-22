@@ -47,3 +47,9 @@ online relocalization: we still use the iESKF in fastlio2, including imu and lid
 incremental mapping: we should use the map manager in repo: lidar_imu_localization.
 
 so, the first question is to develop a map manager to manage the prior map.
+
+
+1.22 
+there are problems in nearcloud, why it is static??
+the mode of lio should be reconstructed
+the topics of odometry and path should be refined
