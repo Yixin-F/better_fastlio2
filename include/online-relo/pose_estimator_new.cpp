@@ -62,6 +62,7 @@ pose_estimator::pose_estimator(){
 
     *priorMap += *sessions[0].globalMap;
     *priorPath += *sessions[0].cloudKeyPoses3D;
+    downSizeFilterPub.setLeafSize(3.0, 3.0, 3.0);
 
     kdtreeGlobalMapPoses->setInputCloud(priorPath);
     std::cout << ANSI_COLOR_GREEN << "load prior knowledge" << ANSI_COLOR_RESET << std::endl;
@@ -156,7 +157,10 @@ void pose_estimator::run(){
         }
 
         if(idx >= cloudBuffer.size()){
-            std::cout << ANSI_COLOR_RED << "relo > subscribe ... " << ANSI_COLOR_RESET << std::endl;
+            // std::cout << ANSI_COLOR_RED << "relo > subscribe ... " << ANSI_COLOR_RESET << std::endl;
+            publish_odometry(pubPose);
+            publish_path(pubPath);
+            publishCloud(&pubReloCloud, reloCloud, ros::Time().fromSec(ld_time), "world");
             continue;
         }
 
@@ -188,12 +192,20 @@ void pose_estimator::run(){
             Eigen::MatrixXd linear = transform.block(0, 3, 3, 1);
             Eigen::Matrix<double, 3, 1> euler = RotMtoEuler(rot);
             PointTypePose pose_icp;
+
             pose_icp.x = linear(0, 0);
             pose_icp.y = linear(1, 0);
             pose_icp.z = linear(2, 0);
             pose_icp.roll = euler(0, 0);
             pose_icp.pitch = euler(1, 0);
             pose_icp.yaw = euler(2, 0);
+
+            floor(pose_icp.x, 0.2);
+            floor(pose_icp.y, 0.2);
+            floor(pose_icp.z, 0.2);
+            // floor(pose_icp.roll, 0.2);
+            // floor(pose_icp.pitch, 0.2);
+            // floor(pose_icp.yaw, 0.2);
 
             reloCloud->clear();
             *reloCloud += *transformPointCloud(curCloud, &pose_icp);
@@ -202,7 +214,7 @@ void pose_estimator::run(){
             Eigen::Affine3f trans_buffer = pcl::getTransformation(poseBuffer_6D[idx].x, poseBuffer_6D[idx].y, poseBuffer_6D[idx].z, poseBuffer_6D[idx].roll, poseBuffer_6D[idx].pitch, poseBuffer_6D[idx].yaw);
             Eigen::Affine3f trans_init = pcl::getTransformation(initPose.x, initPose.y, initPose.z, initPose.roll, initPose.pitch, initPose.yaw);
             Eigen::Affine3f trans_res = pcl::getTransformation(pose_icp.x, pose_icp.y, pose_icp.z, pose_icp.roll, pose_icp.pitch, pose_icp.yaw);
-            Eigen::Affine3f trans_aft = trans_buffer * trans_init * trans_res;
+            Eigen::Affine3f trans_aft = trans_res * trans_init * trans_buffer;
 
             float aft[6];
             pcl::getTranslationAndEulerAngles(trans_aft, aft[0], aft[1], aft[2],
@@ -243,33 +255,37 @@ void pose_estimator::run(){
             idx ++;
         }
         else{
-            std::cout << ANSI_COLOR_GREEN << "lio mode for frame: " << idx << ANSI_COLOR_RESET << std::endl;
+            std::cout << ANSI_COLOR_RED << "lio mode for frame: " << idx << ANSI_COLOR_RESET << std::endl;
             
             pcl::PointCloud<PointType>::Ptr curCloud(new pcl::PointCloud<PointType>());
             *curCloud += *transformPointCloud(cloudBuffer[idx], &initPose);
             std::cout << "current cloud size: " << curCloud->points.size() << std::endl;
 
             // *sessions[0].globalMap += *curCloud;
-            // *priorMap += *curCloud;
+            downSizeFilterPub.setInputCloud(curCloud);
+            downSizeFilterPub.filter(*curCloud);
+            *priorMap += *curCloud;
 
             reloCloud->clear();
             *reloCloud += *curCloud;
             publishCloud(&pubReloCloud, reloCloud, ros::Time().fromSec(ld_time), "world");
 
-            KeyFrame newFrame;
-            newFrame.all_cloud = curCloud;
-            sessions[0].cloudKeyFrames.push_back(newFrame);
-            std::cout << "newFrame.all_cloud size: " << newFrame.all_cloud->points.size() << std::endl;
-
+            
             pcl::PointCloud<PointType>::Ptr invCloud(new pcl::PointCloud<PointType>());
             *invCloud += *getBodyCloud(cloudBuffer[idx], poseBuffer_6D[idx], pose_zero);
             invCloud = getBodyCloud(invCloud, pose_ext, pose_zero);
+
+            KeyFrame newFrame;
+            newFrame.all_cloud = invCloud;
+            sessions[0].cloudKeyFrames.push_back(newFrame);
+            std::cout << "newFrame.all_cloud size: " << newFrame.all_cloud->points.size() << std::endl;
+
             sessions[0].scManager.makeAndSaveScancontextAndKeys(*invCloud);
             std::cout << "add current sc" << std::endl;
 
             Eigen::Affine3f trans_buffer = pcl::getTransformation(poseBuffer_6D[idx].x, poseBuffer_6D[idx].y, poseBuffer_6D[idx].z, poseBuffer_6D[idx].roll, poseBuffer_6D[idx].pitch, poseBuffer_6D[idx].yaw);
             Eigen::Affine3f trans_init = pcl::getTransformation(initPose.x, initPose.y, initPose.z, initPose.roll, initPose.pitch, initPose.yaw);
-            Eigen::Affine3f trans_aft = trans_buffer * trans_init;
+            Eigen::Affine3f trans_aft = trans_init * trans_buffer;
 
             float aft[6];
             pcl::getTranslationAndEulerAngles(trans_aft, aft[0], aft[1], aft[2],
@@ -284,15 +300,25 @@ void pose_estimator::run(){
             pose_aft.yaw = aft[5];
 
             reloPoseBuffer.push_back(pose_aft);
+            std::cout << "reloPoseBuffer size: " << reloPoseBuffer.size() << std::endl;
 
             sessions[0].cloudKeyPoses6D->points.push_back(pose_aft);
+            sessions[0].cloudKeyPoses6D->width = sessions[0].cloudKeyPoses6D->points.size();
+            sessions[0].cloudKeyPoses6D->height = 1;
+            std::cout << "cloudKeyPoses6D size: " << sessions[0].cloudKeyPoses6D->points.size() << std::endl;
 
             PointType pose3d;
             pose3d.x = pose_aft.x;
             pose3d.y = pose_aft.y;
             pose3d.z = pose_aft.z;
             sessions[0].cloudKeyPoses3D->points.push_back(pose3d);
+            sessions[0].cloudKeyPoses3D->width = sessions[0].cloudKeyPoses3D->points.size();
+            sessions[0].cloudKeyPoses3D->height = 1;
             priorPath->points.push_back(pose3d);
+            priorPath->width = priorPath->points.size();
+            priorPath->height = 1;
+            std::cout << "priorPath size: " << priorPath->points.size() << std::endl;
+
 
             Eigen::Matrix<double, 3, 3> ang_rot = Exp((double)pose_aft.roll, (double)pose_aft.pitch, (double)pose_aft.yaw);
             Eigen::Vector4d q = rotationToQuaternion(ang_rot);
@@ -342,7 +368,18 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
     kdtreeGlobalMapPoses->nearestKSearch(pose3d, 1, idxVec, disVec);
 
     if(disVec[0] > searchDis){
-        return false;
+        detectResult = sessions[0].scManager.detectLoopClosureID();
+        sc_new = detectResult.first;
+        if(detectResult.first != -1 && sc_new > sc_old){
+            std::cout << ANSI_COLOR_GREEN_BG << "lio -> relo " << ANSI_COLOR_RESET << std::endl;
+            idxVec.clear();
+            idxVec.emplace_back(detectResult.first);
+            sc_old = detectResult.first;
+            return true;
+        }
+        else{
+            return false;
+        }
     }
 
     pcl::PointCloud<PointType>::Ptr cloud_search(new pcl::PointCloud<PointType>());
@@ -488,7 +525,7 @@ bool pose_estimator::globalRelo(){
         disVec.clear();
         kdtreeGlobalMapPoses->nearestKSearch(tmp, searchNum, idxVec, disVec);
 
-        for(int i = 1; i < idxVec.size(); i++){
+        for(int i = 0; i < idxVec.size(); i++){
             pcl::PointCloud<PointType>::Ptr nearCloud_tmp(new pcl::PointCloud<PointType>());
             *nearCloud_tmp += *transformPointCloud(sessions[0].cloudKeyFrames[idxVec[i]].all_cloud, &pose_ext);
             *nearCloud += *transformPointCloud(nearCloud_tmp, &sessions[0].cloudKeyPoses6D->points[idxVec[i]]);

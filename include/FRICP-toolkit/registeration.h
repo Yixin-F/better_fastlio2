@@ -145,7 +145,7 @@ public:
         }
         double end_reg = omp_get_wtime();
         time = end_reg - begin_reg;
-        std::cout << "Registration cost(ms): " << time << std::endl;
+        std::cout << "Registration cost(s): " << time << std::endl;
 
         // vertices_source = scale * vertices_source;
         Eigen::Affine3d res_T;

@@ -73,14 +73,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
+        Max Value: 2.2748758792877197
+        Min Value: -0.7477350234985352
         Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: FlatColor
+      Color Transformer: AxisColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -129,8 +129,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 28.28565788269043
-        Min Value: -9.225262641906738
+        Max Value: 24.992338180541992
+        Min Value: -4.457158088684082
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -248,7 +248,7 @@ Visualization Manager:
       Topic: /pose
       Unreliable: false
       Value: false
-    - Alpha: 2
+    - Alpha: 1
       Buffer Length: 10
       Class: rviz/Path
       Color: 25; 255; 0
@@ -270,7 +270,7 @@ Visualization Manager:
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
       Topic: /path_loc
-      Unreliable: false
+      Unreliable: true
       Value: true
   Enabled: true
   Global Options:
@@ -300,7 +300,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 319.4493408203125
+      Distance: 213.61842346191406
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -308,17 +308,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 50.56348419189453
-        Y: 13.25653076171875
-        Z: -19.84967613220215
+        X: 67.53089904785156
+        Y: 29.474058151245117
+        Z: -18.606904983520508
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.494796633720398
+      Pitch: 1.509796380996704
       Target Frame: global
-      Yaw: 3.3071887493133545
+      Yaw: 3.277188539505005
     Saved: ~
 Window Geometry:
   Displays:

@@ -55,6 +55,7 @@ public:
     std::vector<int> idxVec;
     std::vector<float> disVec;
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses;
+    pcl::VoxelGrid<PointType> downSizeFilterPub;
     
     int idx = 0;
     std::deque<pcl::PointCloud<PointType>::Ptr> cloudBuffer;
@@ -75,8 +76,12 @@ public:
     bool global_flg = false;
     bool external_flg = false;
     bool sc_flg = false;
+
     int cout_count = 0;
     int cout_count_ = 0;
+
+    int sc_new = 1;
+    int sc_old = -1;
 
     pose_estimator();
     ~pose_estimator() {}

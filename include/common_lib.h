@@ -242,7 +242,7 @@ typedef pcl::PointCloud<PointTypePose>::Ptr Trajectory;
 
 // keyframe
 struct KeyFrame{
-    pcl::PointCloud<PointType>::Ptr all_cloud;  // origianl pointcloud
+    pcl::PointCloud<PointType>::Ptr all_cloud;  // original pointcloud
     std::vector<std::pair<int, std::vector<int>>> object_cloud; // TODO: segmented object <object_id, ptIdx>
     Eigen::MatrixXd scv_od;  // TODO: T-GRS paper is a variant of scan context
     int reloTargetIdx;
@@ -745,6 +745,13 @@ pcl::PointCloud<PointType>::Ptr getAddCloud(const pcl::PointCloud<PointType>::Pt
     Eigen::Affine3f trans_diff = trans_body * trans_other;
     transformPointCloud(cloud, trans_diff, cloud_trans);
     return cloud_trans;
+}
+
+template <typename T1, typename T2>
+void floor(T1& a, T2 b){
+    if(a >= b){
+        a = b;
+    }
 }
 
 std::vector<std::pair<double, int>> sortVecWithIdx(const std::vector<double>& arr) 

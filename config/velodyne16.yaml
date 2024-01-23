@@ -80,5 +80,5 @@ visualization:
     globalMapVisualizationSearchRadius: 10.0
     globalMapVisualizationPoseDensity: 5
     globalMapVisualizationLeafSize: 0.5
-    visulize_IkdtreeMap: false
+    visulize_IkdtreeMap: true
 
