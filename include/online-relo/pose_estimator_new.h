@@ -61,6 +61,7 @@ public:
     std::deque<PointTypePose> poseBuffer_6D;
     std::deque<PointType> poseBuffer_3D;
 
+    double ld_time;
     nav_msgs::Path path;                    
     nav_msgs::Odometry odomAftMapped;
     geometry_msgs::PoseStamped msg_body_pose; 

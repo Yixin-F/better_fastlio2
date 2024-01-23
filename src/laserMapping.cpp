@@ -2181,6 +2181,8 @@ int main(int argc, char **argv)
     // 中断处理函数,如果有中断信号(比如Ctrl+C),则执行第二个参数里面的SigHandle函数
     signal(SIGINT, SigHandle);
 
+    // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug); 
+
     ros::Rate rate(5000);
     bool status = ros::ok();
     while (status)
@@ -2409,7 +2411,6 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < cloudKeyPoses6D->size(); i++){
         pcl::PointCloud<PointType>::Ptr save_cloud(new pcl::PointCloud<PointType>());
         if( sc_input_type == SCInputType::SINGLE_SCAN_FULL ) {
-            pcl::copyPointCloud(*surfCloudKeyFrames[i],  *save_cloud);
             scLoop.makeAndSaveScancontextAndKeys(*save_cloud);
         }  
         else if (sc_input_type == SCInputType::MULTI_SCAN_FEAT) { 
