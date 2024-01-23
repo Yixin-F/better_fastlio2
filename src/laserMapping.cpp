@@ -2394,11 +2394,11 @@ int main(int argc, char **argv)
         pcl::PCDWriter pcd_writer;
         cout << "current scan saved to PCD/" << file_name << endl;
         pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;   
-        downSizeFilterGlobalMapKeyFrames.setLeafSize(1.0, 1.0, 1.0); 
+        downSizeFilterGlobalMapKeyFrames.setLeafSize(2.0, 2.0, 2.0); 
         downSizeFilterGlobalMapKeyFrames.setInputCloud(pcl_wait_save);
         downSizeFilterGlobalMapKeyFrames.filter(*pcl_wait_save);
-        // pcl::io::savePCDFileASCII(all_points_dir, *pcl_wait_save);
-        pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
+        pcl::io::savePCDFileASCII(all_points_dir, *pcl_wait_save);
+        // pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
     }
 
     // save sc and keyframe
@@ -2411,15 +2411,18 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < cloudKeyPoses6D->size(); i++){
         pcl::PointCloud<PointType>::Ptr save_cloud(new pcl::PointCloud<PointType>());
         if( sc_input_type == SCInputType::SINGLE_SCAN_FULL ) {
+            pcl::copyPointCloud(*surfCloudKeyFrames[i],  *save_cloud);
             scLoop.makeAndSaveScancontextAndKeys(*save_cloud);
         }  
         else if (sc_input_type == SCInputType::MULTI_SCAN_FEAT) { 
             pcl::PointCloud<PointType>::Ptr multiKeyFrameFeatureCloud(new pcl::PointCloud<PointType>());
             loopFindNearKeyframes(multiKeyFrameFeatureCloud, i, historyKeyframeSearchNum);
             if(soMany){
+                // *save_cloud += *multiKeyFrameFeatureCloud;
                 pcl::copyPointCloud(*multiKeyFrameFeatureCloud,  *save_cloud);
             }
             else{
+                // *save_cloud += *surfCloudKeyFrames[i];
                 pcl::copyPointCloud(*surfCloudKeyFrames[i],  *save_cloud);
             }
             scLoop.makeAndSaveScancontextAndKeys(*save_cloud); 

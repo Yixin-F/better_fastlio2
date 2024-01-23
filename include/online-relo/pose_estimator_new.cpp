@@ -82,6 +82,11 @@ void pose_estimator::allocateMemory(){
 void pose_estimator::cloudCBK(const sensor_msgs::PointCloud2::ConstPtr& msg){
     pcl::PointCloud<PointType>::Ptr msgCloud(new pcl::PointCloud<PointType>());
     pcl::fromROSMsg(*msg, *msgCloud);
+
+    if(msgCloud->points.size() == 0){
+        return ;
+    }
+
     msgCloud->width = msgCloud->points.size();
     msgCloud->height = 1;
     cloudBuffer.push_back(msgCloud);
@@ -150,7 +155,7 @@ void pose_estimator::run(){
             continue;
         }
 
-        if(idx > cloudBuffer.size()){
+        if(idx >= cloudBuffer.size()){
             std::cout << ANSI_COLOR_RED << "relo > subscribe ... " << ANSI_COLOR_RESET << std::endl;
             continue;
         }
@@ -160,12 +165,10 @@ void pose_estimator::run(){
         pcl::PointCloud<PointType>::Ptr relo_pt(new pcl::PointCloud<PointType>());
         relo_pt->points.emplace_back(poseBuffer_3D[idx]);
         relo_pt = transformPointCloud(relo_pt, &initPose);
-        relo_pt->width = relo_pt->points.size();
-        relo_pt->height = 1;
         std::cout << ANSI_COLOR_GREEN << "get current relo point " << idx << ANSI_COLOR_RESET << std::endl;
 
         if(easyToRelo(relo_pt->points[0])){
-        // if(1){
+        // if(0){
             std::cout << ANSI_COLOR_GREEN << "relo mode for frame: " << idx << ANSI_COLOR_RESET << std::endl;
             
             pcl::PointCloud<PointType>::Ptr curCloud(new pcl::PointCloud<PointType>());
@@ -251,22 +254,18 @@ void pose_estimator::run(){
 
             reloCloud->clear();
             *reloCloud += *curCloud;
-            reloCloud->width = reloCloud->points.size();
-            reloCloud->height = 1;
             publishCloud(&pubReloCloud, reloCloud, ros::Time().fromSec(ld_time), "world");
 
-            // KeyFrame newFrame;
-            // newFrame.all_cloud = curCloud;
-            // sessions[0].cloudKeyFrames.push_back(newFrame);
-            // std::cout << "newFrame.all_cloud size: " << newFrame.all_cloud->points.size() << std::endl;
+            KeyFrame newFrame;
+            newFrame.all_cloud = curCloud;
+            sessions[0].cloudKeyFrames.push_back(newFrame);
+            std::cout << "newFrame.all_cloud size: " << newFrame.all_cloud->points.size() << std::endl;
 
-            // pcl::PointCloud<PointType>::Ptr invCloud(new pcl::PointCloud<PointType>());
-            // *invCloud += *getBodyCloud(cloudBuffer[idx], poseBuffer_6D[idx], pose_zero);
-            // invCloud = getBodyCloud(invCloud, pose_ext, pose_zero);
-            // invCloud->width = invCloud->points.size();
-            // invCloud->height = 1;
-            // sessions[0].scManager.makeAndSaveScancontextAndKeys(*invCloud);
-
+            pcl::PointCloud<PointType>::Ptr invCloud(new pcl::PointCloud<PointType>());
+            *invCloud += *getBodyCloud(cloudBuffer[idx], poseBuffer_6D[idx], pose_zero);
+            invCloud = getBodyCloud(invCloud, pose_ext, pose_zero);
+            sessions[0].scManager.makeAndSaveScancontextAndKeys(*invCloud);
+            std::cout << "add current sc" << std::endl;
 
             Eigen::Affine3f trans_buffer = pcl::getTransformation(poseBuffer_6D[idx].x, poseBuffer_6D[idx].y, poseBuffer_6D[idx].z, poseBuffer_6D[idx].roll, poseBuffer_6D[idx].pitch, poseBuffer_6D[idx].yaw);
             Eigen::Affine3f trans_init = pcl::getTransformation(initPose.x, initPose.y, initPose.z, initPose.roll, initPose.pitch, initPose.yaw);
@@ -342,6 +341,10 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
     disVec.clear();
     kdtreeGlobalMapPoses->nearestKSearch(pose3d, 1, idxVec, disVec);
 
+    if(disVec[0] > searchDis){
+        return false;
+    }
+
     pcl::PointCloud<PointType>::Ptr cloud_search(new pcl::PointCloud<PointType>());
     pcl::PointCloud<PointType>::Ptr cloud_tmp(new pcl::PointCloud<PointType>());
     *cloud_tmp += *transformPointCloud(sessions[0].cloudKeyFrames[idxVec[0]].all_cloud, &pose_ext);
@@ -354,7 +357,7 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
     float max_x = point_max.x;
     float max_y = point_max.y;
     float max_z = point_max.z;
-    if(pose3d.x > (min_x + searchDis) && pose3d.x < (max_x - searchDis) && pose3d.y > (min_y + searchDis) && pose3d.y < (max_y + searchDis)){
+    if(pose3d.x > (min_x + 10.0) && pose3d.x < (max_x - 10.0) && pose3d.y > (min_y + 10.0) && pose3d.y < (max_y + 10.0)){
         return true;
     }
     else{
@@ -456,21 +459,22 @@ bool pose_estimator::globalRelo(){
 
     std::cout << ANSI_COLOR_GREEN << "global relocalization processing ... " << ANSI_COLOR_RESET << std::endl;
     
-    bool trust = false;
+    bool trust;
     PointTypePose poseSC = sessions[0].cloudKeyPoses6D->points[detectResult.first];
-    // if(detectResult.first < 0){
-    //     trust = false;
-    //     std::cout << ANSI_COLOR_RED << "can not relo by SC ... " << ANSI_COLOR_RESET << std::endl;
-    // }
-    // else{
-    //     float x_diff = externalPose.x - poseSC.x;
-    //     float y_diff = externalPose.y - poseSC.y;
-    //     float dis = std::sqrt(x_diff * x_diff + y_diff * y_diff);
-    //     std::cout << ANSI_COLOR_GREEN << "distance between sc pose and external pose: " << dis << ANSI_COLOR_RESET << std::endl;
-    //     bool trust = (dis <= trustDis) ? true : false;  // select SC-pose or extermal-pose
-    // }
+    if(detectResult.first < 0){
+        trust = false;
+        std::cout << ANSI_COLOR_RED << "can not relo by SC ... " << ANSI_COLOR_RESET << std::endl;
+    }
+    else{
+        float x_diff = externalPose.x - poseSC.x;
+        float y_diff = externalPose.y - poseSC.y;
+        float dis = std::sqrt(x_diff * x_diff + y_diff * y_diff);
+        std::cout << ANSI_COLOR_GREEN << "distance between sc pose and external pose: " << dis << ANSI_COLOR_RESET << std::endl;
+        trust = (dis <= trustDis) ? true : false;  // select SC-pose or extermal-pose
+    }
     
     if(trust){
+    // if(0){
         std::cout << ANSI_COLOR_GREEN << "init relo by SC-pose ... " << ANSI_COLOR_RESET << std::endl;
         std::cout << ANSI_COLOR_GREEN << "use prior frame " << detectResult.first << " to relo init cloud ..." << ANSI_COLOR_RESET << std::endl;
 
@@ -484,12 +488,11 @@ bool pose_estimator::globalRelo(){
         disVec.clear();
         kdtreeGlobalMapPoses->nearestKSearch(tmp, searchNum, idxVec, disVec);
 
-        pcl::PointCloud<PointType>::Ptr nearCloud_tmp(new pcl::PointCloud<PointType>());
-        *nearCloud_tmp += *sessions[0].cloudKeyFrames[idxVec[0]].all_cloud;
         for(int i = 1; i < idxVec.size(); i++){
-            *nearCloud_tmp += *getBodyCloud(sessions[0].cloudKeyFrames[idxVec[i]].all_cloud, poseSC, sessions[0].cloudKeyPoses6D->points[idxVec[i]]);
+            pcl::PointCloud<PointType>::Ptr nearCloud_tmp(new pcl::PointCloud<PointType>());
+            *nearCloud_tmp += *transformPointCloud(sessions[0].cloudKeyFrames[idxVec[i]].all_cloud, &pose_ext);
+            *nearCloud += *transformPointCloud(nearCloud_tmp, &sessions[0].cloudKeyPoses6D->points[idxVec[i]]);
         }
-        *nearCloud += *getBodyCloud(nearCloud_tmp, pose_ext, poseSC);
         std::cout << "near cloud size: " << nearCloud->points.size() << std::endl;
         pcl::io::savePCDFile("/home/yixin-f/fast-lio2/src/data_loc/near.pcd", *nearCloud);
 
@@ -551,11 +554,6 @@ bool pose_estimator::globalRelo(){
         tmp.x = externalPose.x;
         tmp.y = externalPose.y;
         tmp.z = externalPose.z;
-        if(!easyToRelo(tmp)){
-            external_flg = false;
-            std::cout << ANSI_COLOR_RED << "please reset external pose ... " << ANSI_COLOR_RESET << std::endl;
-            return false;
-        }
 
         std::cout << ANSI_COLOR_GREEN << "use prior frame " << idxVec[0] << " to relo init cloud ..." << ANSI_COLOR_RESET << std::endl;
 
@@ -644,18 +642,18 @@ void pose_estimator::publish_odometry(const ros::Publisher &pubOdomAftMapped){
     odomAftMapped.child_frame_id = "body";
     odomAftMapped.header.stamp = ros::Time().fromSec(ld_time);
 
-    static tf::TransformBroadcaster br1;
-    tf::Transform transform;
-    tf::Quaternion q;
-    transform.setOrigin(tf::Vector3(odomAftMapped.pose.pose.position.x,
-                                    odomAftMapped.pose.pose.position.y,
-                                    odomAftMapped.pose.pose.position.z));
-    q.setW(odomAftMapped.pose.pose.orientation.w);
-    q.setX(odomAftMapped.pose.pose.orientation.x);
-    q.setY(odomAftMapped.pose.pose.orientation.y);
-    q.setZ(odomAftMapped.pose.pose.orientation.z);
-    transform.setRotation(q);
-    br1.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "world", "body"));
+    // static tf::TransformBroadcaster br1;
+    // tf::Transform transform;
+    // tf::Quaternion q;
+    // transform.setOrigin(tf::Vector3(odomAftMapped.pose.pose.position.x,
+    //                                 odomAftMapped.pose.pose.position.y,
+    //                                 odomAftMapped.pose.pose.position.z));
+    // q.setW(odomAftMapped.pose.pose.orientation.w);
+    // q.setX(odomAftMapped.pose.pose.orientation.x);
+    // q.setY(odomAftMapped.pose.pose.orientation.y);
+    // q.setZ(odomAftMapped.pose.pose.orientation.z);
+    // transform.setRotation(q);
+    // br1.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "world", "body"));
 }
 
 void pose_estimator::publish_path(const ros::Publisher& pubPath){

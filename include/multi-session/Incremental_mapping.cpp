@@ -265,11 +265,17 @@ void MultiSession::Session::loadSessionGraph()
 
 // load map
 void MultiSession::Session::loadGlobalMap(){
-    std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";
-    pcl::io::loadPCDFile(mapfile_path, *globalMap);
-    
-    downSizeFilterMap.setInputCloud(globalMap);
-    downSizeFilterMap.filter(*globalMap);
+    std::string mapfile_path = session_dir_path_ + "/globalMap.pcd";  
+    // pcl::io::loadPCDFile<PointType> (mapfile_path, *globalMap);  // TODO: cannot load PointType
+    pcl::PointCloud<pcl::PointXYZI>::Ptr thisCloudFrame_(new pcl::PointCloud<pcl::PointXYZI>());   
+    pcl::io::loadPCDFile<pcl::PointXYZI> (mapfile_path, *thisCloudFrame_);
+    for(int i = 0; i < thisCloudFrame_->points.size(); i++){
+        PointType pt;
+        pt.x = thisCloudFrame_->points[i].x;
+        pt.y = thisCloudFrame_->points[i].y;
+        pt.z = thisCloudFrame_->points[i].z;
+        globalMap->points.emplace_back(pt);
+    }
 
     std::cout << "global map size: " << globalMap->points.size() << std::endl;
     ROS_INFO_STREAM("\033[1;32m Map loaded: " << mapfile_path << "\033[0m");

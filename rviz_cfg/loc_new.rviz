@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Status1
       Splitter Ratio: 0.6432291865348816
     Tree Height: 1660
   - Class: rviz/Selection
@@ -51,7 +52,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -61,7 +62,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 1
+      Size (Pixels): 2
       Size (m): 0.009999999776482582
       Style: Points
       Topic: /prior_map
@@ -128,8 +129,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 33.909332275390625
-        Min Value: -1.689180850982666
+        Max Value: 28.28565788269043
+        Min Value: -9.225262641906738
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -229,7 +230,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -243,12 +244,12 @@ Visualization Manager:
         Head Radius: 0.10000000149011612
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
-        Value: Arrow
+        Value: Axes
       Topic: /pose
       Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
+      Value: false
+    - Alpha: 2
+      Buffer Length: 10
       Class: rviz/Path
       Color: 25; 255; 0
       Enabled: true
@@ -264,7 +265,7 @@ Visualization Manager:
         Z: 0
       Pose Color: 255; 85; 255
       Pose Style: None
-      Queue Size: 10
+      Queue Size: 1000
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
@@ -299,7 +300,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 205.9239501953125
+      Distance: 319.4493408203125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -307,17 +308,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 25.579618453979492
-        Y: 29.798355102539062
-        Z: -21.802284240722656
+        X: 50.56348419189453
+        Y: 13.25653076171875
+        Z: -19.84967613220215
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5297963619232178
+      Pitch: 1.494796633720398
       Target Frame: global
-      Yaw: 3.254016637802124
+      Yaw: 3.3071887493133545
     Saved: ~
 Window Geometry:
   Displays:

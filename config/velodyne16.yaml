@@ -1,90 +1,84 @@
 common:
-    lid_topic:  "/lidar_points"
-    imu_topic:  "/imu/data"
-
-#NCLT
-#    lid_topic: "/points_raw"
-#    imu_topic: "/imu_raw"
-
-#KITTI
-#    lid_topic: "/kitti/velo/pointcloud"
-#    imu_topic: "/kitti/oxts/imu"
-
-#RS LiDar
-#    lid_topic: "/rslidar"
-#    imu_topic: "/imu"
+    lid_topic:  "/velodyne_points"
+    imu_topic:  "/handsfree/imu"
+    camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
+
+    rootDir: "/home/yixin-f/fast-lio2/src/data/"
+    savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
+    savePCDDirectory: "PCDs/"        
+    saveSCD: true 
+    saveSCDDirectory: "SCDs/"
+    saveLOG: true
+    saveLOGDirectory: "LOG/"
+    map_save_en: true  # global map
+    pcd_save_interval: 1                 # how many LiDAR frames saved in each pcd
     
 preprocess:
-    lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR, 3 for ouster LiDAR, 
-    scan_line: 16
-    scan_rate: 10                # only need to be set for velodyne, unit: Hz,
-    blind: 1
+    lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
+    livox_type: 1                # 1 for LIVOX_CUS
+    scan_line:  16
+    blind: 2
+    feature_enabled: 0  # bool
+    point_filter_num: 1 # bool
+    scan_rate: 10 
+
+camera:
+    camera_en: false
+    camera_external: [ 0.000000, -1.000000, 0.000000, 0.000000,
+                       0.000000, 0.000000, -1.000000, 0.300000,
+                       1.000000, 0.000000, 0.000000, 0.000000,
+                       0.000000, 0.000000, 0.000000, 1.000000]        #相机2雷达外参
+    camera_internal: [516.235840, 0.000000, 641.125888, 0.000000,
+                      0.000000, 533.185608, 338.725370, 0.000000,
+                      0.000000, 0.000000, 1.000000, 0.000000]         #相机内参
 
 mapping:
     acc_cov: 0.1
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    180
+    fov_degree:    180.0
     det_range:     100.0
-    extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic,
-    extrinsic_T: [ 0, 0, 0.28]
-    extrinsic_R: [ 1, 0, 0, 
-                   0, 1, 0, 
-                   0, 0, 1]
+    cube_len: 200   # range
+    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
+    mappingSurfLeafSize: 0.2
+    keyframeAddingDistThreshold: 1.0
+    keyframeAddingAngleThreshold: 0.2
+    extrinsic_T: [ 0.071, -0.053, 0.097 ]
+    extrinsic_R: [ 0.9935, -0.0140, -0.1128,
+                   0.0137, 0.9999, -0.0040,
+                   0.1128, 0.0024, 0.9936]
+
+ikdtree:
+    max_iteration: 3
+    recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
+    filter_size_map_min: 0.2
+
+loop:
+    loopClosureEnableFlag: true
+    loopClosureFrequency: 1.0
+    historyKeyframeSearchRadius: 10.0
+    historyKeyframeSearchTimeDiff: 30.0
+    historyKeyframeSearchNum: 1
+    historyKeyframeFitnessScore: 0.2
+
+segment:
+    ground_en: false
+    tollerance_en: false  # // TODO: error !
+    sensor_height: 1.5
+    z_tollerance: 2.0
+    rotation_tollerance: 0.2
 
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output
-    dense_publish_en: true       # false: low down the points number in a global-frame point clouds scan.
+    dense_publish_en: false       # false: low down the points number in a global-frame point clouds scan.
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
-pcd_save:
-    map_save_en: true
-    interval: -1                 # how many LiDAR frames saved in each pcd file; 
-                                 # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
-
-# voxel filter paprams
-odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor
-mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
-mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
-
-# robot motion constraint (in case you are using a 2D robot)
-z_tollerance: 1000                            # meters
-rotation_tollerance: 1000                     # radians
-
-# CPU Params
-numberOfCores: 4                              # number of cores for mapping optimization
-mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
-
-# Surrounding map
-keyframeAddingDistThreshold: 1.0   # meters, regulate keyframe adding threshold
-keyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
-surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
-surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
-
-# Loop closure
-loopClosureEnableFlag: true                   # use loopclousre or not 
-loopClosureFrequency: 1                     # Hz, regulate loop closure constraint add frequency
-surroundingKeyframeSize: 50                   # submap size (when loop closure enabled)
-historyKeyframeSearchRadius: 15             # meters, key frame that is within n meters from current pose will be considerd for loop closure
-historyKeyframeSearchTimeDiff: 30.0           # seconds, key frame that is n seconds older will be considered for loop closure
-historyKeyframeSearchNum: 25                  # number of hostory key frames will be fused into a submap for loop closure
-historyKeyframeFitnessScore: 0.3              # icp threshold, the smaller the better alignment
-
-# Visualization
-globalMapVisualizationSearchRadius: 1000.0    # meters, global map visualization radius
-globalMapVisualizationPoseDensity: 10      # meters, global map visualization keyframe density
-globalMapVisualizationLeafSize: 1.0           # meters, global map visualization cloud density
-
-# visual iktree_map  
-visulize_IkdtreeMap: true
-
-# visual iktree_map  
-recontructKdTree: true
-
-# Export settings
-savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
-savePCDDirectory: "/fast_lio_sam_ws/src/FAST_LIO_SAM/PCD/"        # in your home folder, starts and ends with "/". Warning: the code deletes "LOAM" folder then recreates it. See "mapOptimization" for implementation
+visualization:
+    globalMapVisualizationSearchRadius: 10.0
+    globalMapVisualizationPoseDensity: 5
+    globalMapVisualizationLeafSize: 0.5
+    visulize_IkdtreeMap: false
 
