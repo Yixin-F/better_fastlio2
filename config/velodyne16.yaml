@@ -41,8 +41,8 @@ mapping:
     fov_degree:    180.0
     det_range:     100.0
     cube_len: 200   # range
-    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
-    mappingSurfLeafSize: 0.2
+    extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
+    mappingSurfLeafSize: 0.1
     keyframeAddingDistThreshold: 1.0
     keyframeAddingAngleThreshold: 0.2
     extrinsic_T: [ 0.071, -0.053, 0.097 ]

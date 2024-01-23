@@ -65,6 +65,7 @@ pose_estimator::pose_estimator(){
     downSizeFilterPub.setLeafSize(3.0, 3.0, 3.0);
 
     kdtreeGlobalMapPoses->setInputCloud(priorPath);
+    kdtreeGlobalMapPoses_copy->setInputCloud(priorPath);
     std::cout << ANSI_COLOR_GREEN << "load prior knowledge" << ANSI_COLOR_RESET << std::endl;
 
     reg.push_back(Registeration(regMode));
@@ -78,6 +79,7 @@ void pose_estimator::allocateMemory(){
     initCloud_.reset(new pcl::PointCloud<PointType>());
     nearCloud.reset(new pcl::PointCloud<PointType>());
     kdtreeGlobalMapPoses.reset(new pcl::KdTreeFLANN<PointType>());
+    kdtreeGlobalMapPoses_copy.reset(new pcl::KdTreeFLANN<PointType>());
 }
 
 void pose_estimator::cloudCBK(const sensor_msgs::PointCloud2::ConstPtr& msg){
@@ -118,6 +120,7 @@ void pose_estimator::poseCBK(const nav_msgs::Odometry::ConstPtr& msg){
     pose3d.x = msg->pose.pose.position.x;
     pose3d.y = msg->pose.pose.position.y;
     pose3d.z = msg->pose.pose.position.z;
+    pose3d.z = 1.6;
 
     poseBuffer_3D.push_back(pose3d);
 }
@@ -200,11 +203,11 @@ void pose_estimator::run(){
             pose_icp.pitch = euler(1, 0);
             pose_icp.yaw = euler(2, 0);
 
-            floor(pose_icp.x, 0.2);
-            floor(pose_icp.y, 0.2);
-            floor(pose_icp.z, 0.2);
-            // floor(pose_icp.roll, 0.2);
-            // floor(pose_icp.pitch, 0.2);
+            // floor(pose_icp.x, 0.5);
+            // floor(pose_icp.y, 0.5);
+            // floor(pose_icp.z, 0.1);
+            // floor(pose_icp.roll, 0.1);
+            // floor(pose_icp.pitch, 0.1);
             // floor(pose_icp.yaw, 0.2);
 
             reloCloud->clear();
@@ -261,15 +264,14 @@ void pose_estimator::run(){
             *curCloud += *transformPointCloud(cloudBuffer[idx], &initPose);
             std::cout << "current cloud size: " << curCloud->points.size() << std::endl;
 
-            // *sessions[0].globalMap += *curCloud;
-            downSizeFilterPub.setInputCloud(curCloud);
-            downSizeFilterPub.filter(*curCloud);
-            *priorMap += *curCloud;
-
             reloCloud->clear();
             *reloCloud += *curCloud;
             publishCloud(&pubReloCloud, reloCloud, ros::Time().fromSec(ld_time), "world");
 
+            // *sessions[0].globalMap += *curCloud;
+            downSizeFilterPub.setInputCloud(curCloud);
+            downSizeFilterPub.filter(*curCloud);
+            *priorMap += *curCloud;
             
             pcl::PointCloud<PointType>::Ptr invCloud(new pcl::PointCloud<PointType>());
             *invCloud += *getBodyCloud(cloudBuffer[idx], poseBuffer_6D[idx], pose_zero);
@@ -317,6 +319,7 @@ void pose_estimator::run(){
             priorPath->points.push_back(pose3d);
             priorPath->width = priorPath->points.size();
             priorPath->height = 1;
+            kdtreeGlobalMapPoses_copy->setInputCloud(priorPath);
             std::cout << "priorPath size: " << priorPath->points.size() << std::endl;
 
 
@@ -368,13 +371,26 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
     kdtreeGlobalMapPoses->nearestKSearch(pose3d, 1, idxVec, disVec);
 
     if(disVec[0] > searchDis){
-        detectResult = sessions[0].scManager.detectLoopClosureID();
-        sc_new = detectResult.first;
-        if(detectResult.first != -1 && sc_new > sc_old){
+        // detectResult = sessions[0].scManager.detectLoopClosureID();
+        // sc_new = detectResult.first;
+        // if(detectResult.first != -1 && sc_new != sc_old){
+        //     std::cout << ANSI_COLOR_GREEN_BG << "lio -> relo " << ANSI_COLOR_RESET << std::endl;
+        //     idxVec.clear();
+        //     idxVec.emplace_back(detectResult.first);
+        //     sc_old = detectResult.first;
+        //     return true;
+        // }
+        // else{
+        //     return false;
+        // }
+
+        idxVec_copy.clear();
+        disVec_copy.clear();
+        kdtreeGlobalMapPoses_copy->nearestKSearch(pose3d, 1, idxVec_copy, disVec_copy);
+        if((disVec_copy[0] < searchDis) && (priorMap->points.size() - idxVec_copy[0]) >= 20){
             std::cout << ANSI_COLOR_GREEN_BG << "lio -> relo " << ANSI_COLOR_RESET << std::endl;
             idxVec.clear();
-            idxVec.emplace_back(detectResult.first);
-            sc_old = detectResult.first;
+            idxVec.emplace_back(idxVec_copy[0]);
             return true;
         }
         else{

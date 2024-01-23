@@ -55,6 +55,11 @@ public:
     std::vector<int> idxVec;
     std::vector<float> disVec;
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses;
+
+    std::vector<int> idxVec_copy;
+    std::vector<float> disVec_copy;
+    pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses_copy;
+
     pcl::VoxelGrid<PointType> downSizeFilterPub;
     
     int idx = 0;
