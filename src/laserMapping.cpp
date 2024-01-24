@@ -717,6 +717,11 @@ void saveKeyFramesAndFactor()
     Eigen::Vector3d pos(latestEstimate.translation().x(), latestEstimate.translation().y(), latestEstimate.translation().z());
     Eigen::Quaterniond q = EulerToQuat(latestEstimate.rotation().roll(), latestEstimate.rotation().pitch(), latestEstimate.rotation().yaw());
 
+    // // FIXME: just refine z for online relo
+    // Eigen::Vector3d pos(state_updated.pos(0), state_updated.pos(1), latestEstimate.translation().z());
+    // vect3 euler = SO3ToEuler(state_updated.rot);
+    // Eigen::Quaterniond q = EulerToQuat(euler(0), euler(1), euler(2));
+
     // 更新状态量
     state_updated.pos = pos;
     state_updated.rot = q;

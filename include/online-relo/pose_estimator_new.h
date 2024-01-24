@@ -82,6 +82,8 @@ public:
     bool external_flg = false;
     bool sc_flg = false;
 
+    float height;
+
     int cout_count = 0;
     int cout_count_ = 0;
 

@@ -53,3 +53,6 @@ so, the first question is to develop a map manager to manage the prior map.
 there are problems in nearcloud, why it is static??
 the mode of lio should be reconstructed
 the topics of odometry and path should be refined
+
+1.23
+get the cloud in map coordinate from fast-lio2

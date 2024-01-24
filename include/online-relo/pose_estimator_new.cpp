@@ -64,6 +64,8 @@ pose_estimator::pose_estimator(){
     *priorPath += *sessions[0].cloudKeyPoses3D;
     downSizeFilterPub.setLeafSize(3.0, 3.0, 3.0);
 
+    height = priorPath->points[0].z;
+
     kdtreeGlobalMapPoses->setInputCloud(priorPath);
     kdtreeGlobalMapPoses_copy->setInputCloud(priorPath);
     std::cout << ANSI_COLOR_GREEN << "load prior knowledge" << ANSI_COLOR_RESET << std::endl;
@@ -100,8 +102,7 @@ void pose_estimator::poseCBK(const nav_msgs::Odometry::ConstPtr& msg){
     pose.x = msg->pose.pose.position.x;
     pose.y = msg->pose.pose.position.y;
     pose.z = msg->pose.pose.position.z;
-
-
+    
     Eigen::Vector4d q(msg->pose.pose.orientation.x,
                       msg->pose.pose.orientation.y,
                       msg->pose.pose.orientation.z,
@@ -120,7 +121,6 @@ void pose_estimator::poseCBK(const nav_msgs::Odometry::ConstPtr& msg){
     pose3d.x = msg->pose.pose.position.x;
     pose3d.y = msg->pose.pose.position.y;
     pose3d.z = msg->pose.pose.position.z;
-    pose3d.z = 1.6;
 
     poseBuffer_3D.push_back(pose3d);
 }
@@ -255,6 +255,8 @@ void pose_estimator::run(){
             msg_body_pose.pose.orientation.w = q(3);
             publish_path(pubPath);
 
+            height = pose_aft.z;
+
             idx ++;
         }
         else{
@@ -296,7 +298,8 @@ void pose_estimator::run(){
             PointTypePose pose_aft;
             pose_aft.x = aft[0];
             pose_aft.y = aft[1];
-            pose_aft.z = aft[2];
+            // pose_aft.z = aft[2];
+            pose_aft.z = height;
             pose_aft.roll = aft[3];
             pose_aft.pitch = aft[4];
             pose_aft.yaw = aft[5];
@@ -312,7 +315,8 @@ void pose_estimator::run(){
             PointType pose3d;
             pose3d.x = pose_aft.x;
             pose3d.y = pose_aft.y;
-            pose3d.z = pose_aft.z;
+            // pose3d.z = pose_aft.z;
+            pose3d.z = height;
             sessions[0].cloudKeyPoses3D->points.push_back(pose3d);
             sessions[0].cloudKeyPoses3D->width = sessions[0].cloudKeyPoses3D->points.size();
             sessions[0].cloudKeyPoses3D->height = 1;
@@ -386,11 +390,21 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
 
         idxVec_copy.clear();
         disVec_copy.clear();
-        kdtreeGlobalMapPoses_copy->nearestKSearch(pose3d, 1, idxVec_copy, disVec_copy);
-        if((disVec_copy[0] < searchDis) && (priorMap->points.size() - idxVec_copy[0]) >= 20){
-            std::cout << ANSI_COLOR_GREEN_BG << "lio -> relo " << ANSI_COLOR_RESET << std::endl;
-            idxVec.clear();
-            idxVec.emplace_back(idxVec_copy[0]);
+        kdtreeGlobalMapPoses_copy->radiusSearchT(pose3d, searchDis, idxVec_copy, disVec_copy);
+        bool status;
+        for(auto& it : idxVec_copy){
+            if(priorPath->points.size() - it >= 100){  // FIXME: default 100
+                std::cout << ANSI_COLOR_GREEN_BG << "lio -> relo with " << priorPath->points.size() << " to " << it << ANSI_COLOR_RESET << std::endl;
+                idxVec.clear();
+                idxVec.emplace_back(it);
+                status = true;
+                break;
+            }
+            else{
+                status= false;
+            }
+        }
+        if(status){  
             return true;
         }
         else{
