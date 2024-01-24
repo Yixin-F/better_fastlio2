@@ -701,7 +701,7 @@ pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::
     Eigen::Affine3f transCur = pcl::getTransformation(transformIn->x, transformIn->y, transformIn->z, 
                                                 transformIn->roll, transformIn->pitch, transformIn->yaw);
     
-    int numberOfCores = 12; // TODO: move to yaml
+    int numberOfCores = 5; // TODO: move to yaml
     #pragma omp parallel for num_threads(numberOfCores)
     for (int i = 0; i < cloudSize; ++i)
     {
@@ -719,7 +719,7 @@ void transformPointCloud(const CloudT& cloudIn_, const Eigen::Affine3f& transCur
     int cloudSize = cloudIn_->points.size();
     cloudOut_->points.resize(cloudSize);
     
-    int numberOfCores = 12; // TODO: move to yaml
+    int numberOfCores = 5; // TODO: move to yaml
     #pragma omp parallel for num_threads(numberOfCores)
     for(int i = 0; i < cloudSize; i++){
         cloudOut_->points[i].x = transCur_(0,0) * cloudIn_->points[i].x + transCur_(0,1) * cloudIn_->points[i].y + transCur_(0,2) * cloudIn_->points[i].z + transCur_(0,3);

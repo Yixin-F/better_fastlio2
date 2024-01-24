@@ -56,7 +56,7 @@ ikdtree:
     filter_size_map_min: 0.4
 
 loop:
-    loopClosureEnableFlag: true  # set false when using online relo
+    loopClosureEnableFlag: false  # set false when using online relo
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0

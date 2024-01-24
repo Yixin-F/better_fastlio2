@@ -712,7 +712,7 @@ void saveKeyFramesAndFactor()
     // 保存当前位姿的位姿协方差（置信度）
     poseCovariance = isam->marginalCovariance(isamCurrentEstimate.size() - 1);
 
-    // ESKF状态和方差更新
+    // // ESKF状态和方差更新
     state_ikfom state_updated = kf.get_x(); // 获取cur_pose(还没修正)
     Eigen::Vector3d pos(latestEstimate.translation().x(), latestEstimate.translation().y(), latestEstimate.translation().z());
     Eigen::Quaterniond q = EulerToQuat(latestEstimate.rotation().roll(), latestEstimate.rotation().pitch(), latestEstimate.rotation().yaw());
@@ -733,7 +733,7 @@ void saveKeyFramesAndFactor()
     pcl::copyPointCloud(*feats_undistort, *thisSurfKeyFrame); // 存储关键帧,没有降采样的点云
     surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-    updatePath(thisPose6D); // 可视化update后的最新位姿
+    updatePath(thisPose6D); // 可视化update后的最新位姿 // FIXME: just refine z for online relo
 
     // 清空局部map, reconstruct  ikdtree submap
     if (recontructKdTree){

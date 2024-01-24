@@ -120,7 +120,8 @@ void pose_estimator::poseCBK(const nav_msgs::Odometry::ConstPtr& msg){
     PointType pose3d;
     pose3d.x = msg->pose.pose.position.x;
     pose3d.y = msg->pose.pose.position.y;
-    pose3d.z = msg->pose.pose.position.z;
+    // pose3d.z = msg->pose.pose.position.z;
+    pose3d.z = height;
 
     poseBuffer_3D.push_back(pose3d);
 }
