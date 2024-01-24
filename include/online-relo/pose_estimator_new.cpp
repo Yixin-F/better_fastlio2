@@ -412,25 +412,28 @@ bool pose_estimator::easyToRelo(const PointType& pose3d){
             return false;
         }
     }
-
-    pcl::PointCloud<PointType>::Ptr cloud_search(new pcl::PointCloud<PointType>());
-    pcl::PointCloud<PointType>::Ptr cloud_tmp(new pcl::PointCloud<PointType>());
-    *cloud_tmp += *transformPointCloud(sessions[0].cloudKeyFrames[idxVec[0]].all_cloud, &pose_ext);
-    *cloud_search += *transformPointCloud(cloud_tmp, &sessions[0].cloudKeyPoses6D->points[idxVec[0]]);
-    pcl::PointXYZINormal point_min, point_max;
-    pcl::getMinMax3D(*cloud_search, point_min, point_max);
-    float min_x = point_min.x;
-    float min_y = point_min.y;
-    float min_z = point_min.z;
-    float max_x = point_max.x;
-    float max_y = point_max.y;
-    float max_z = point_max.z;
-    if(pose3d.x > (min_x + 10.0) && pose3d.x < (max_x - 10.0) && pose3d.y > (min_y + 10.0) && pose3d.y < (max_y + 10.0)){
+    else{
         return true;
     }
-    else{
-        return false;
-    }
+
+    // pcl::PointCloud<PointType>::Ptr cloud_search(new pcl::PointCloud<PointType>());
+    // pcl::PointCloud<PointType>::Ptr cloud_tmp(new pcl::PointCloud<PointType>());
+    // *cloud_tmp += *transformPointCloud(sessions[0].cloudKeyFrames[idxVec[0]].all_cloud, &pose_ext);
+    // *cloud_search += *transformPointCloud(cloud_tmp, &sessions[0].cloudKeyPoses6D->points[idxVec[0]]);
+    // pcl::PointXYZINormal point_min, point_max;
+    // pcl::getMinMax3D(*cloud_search, point_min, point_max);
+    // float min_x = point_min.x;
+    // float min_y = point_min.y;
+    // float min_z = point_min.z;
+    // float max_x = point_max.x;
+    // float max_y = point_max.y;
+    // float max_z = point_max.z;
+    // if(pose3d.x > (min_x + 10.0) && pose3d.x < (max_x - 10.0) && pose3d.y > (min_y + 10.0) && pose3d.y < (max_y + 10.0)){
+    //     return true;
+    // }
+    // else{
+    //     return false;
+    // }
     
     // kdtreeGlobalMapPoses->radiusSearch(pose3d, searchDis, idxVec, disVec);
     // if(idxVec.size() >= searchNum){

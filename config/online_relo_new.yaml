@@ -2,8 +2,8 @@ relo:
     priorDir: "/home/yixin-f/fast-lio2/src/data_loc"
     cloudTopic: "/cloud_registered"
     poseTopic: "/Odometry"
-    searchDis: 5.0
-    searchNum: 2
+    searchDis: 6.0
+    searchNum: 1  # if the cloud is dense, please reset it to 1
     trustDis: 5.0
     # 0: ICP 1: AA-ICP 2: Our Fast ICP 3: Our Robust ICP 4: ICP Point-to-plane
     # 5: Our Robust ICP point to plane 6: Sparse ICP 7: Sparse ICP point to plane
