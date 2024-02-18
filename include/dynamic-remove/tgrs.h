@@ -1,0 +1,167 @@
+#pragma once
+
+#include "common_lib.h"
+#include "patchwork.h"
+#include "tool_color_printf.h"
+
+#define SENSOR_HEIGHT 1.5
+
+#define MIN_DIS 1.0
+#define MAX_DIS 50.0
+#define MIN_ANGLE 0.0
+#define MAX_ANGLE 360.0
+#define MIN_AZIMUTH 30.0
+#define MAX_AZIMUTH 60.0
+
+#define RANGE_RES 0.2
+#define SECTOR_RES 3.0
+#define AZIMUTH_RES 2.0
+
+#define RANGE_NUM (int)std::ceil((MAX_DIS - MIN_DIS) / RANGE_RES)
+#define SECTOR_NUM (int)std::ceil((MAX_ANGLE - MIN_ANGLE) / SECTOR_RES)
+#define AZIMUTH_NUM (int)std::ceil((MAX_AZIMUTH - MIN_AZIMUTH) / AZIMUTH_RES)
+#define BIN_NUM RANGE_NUM * SECTOR_NUM * AZIMUTH_NUM
+
+// apiric-format of point
+struct PointAPRI{
+    float x, y, z;
+    float range;
+    float angle;
+    float azimuth;
+    int range_idx = -1;
+    int sector_idx = -1 ;
+    int azimuth_idx = -1;
+    int voxel_idx = -1;  // id in voxel cloud
+};
+
+// voxel-type in hash cloud
+struct Voxel{
+    int range_idx;
+    int sector_idx;
+    int azimuth_idx;
+    int label = -1;
+    PointType center;   // the point center's intensity is its id in voxel cloud
+    std::vector<int> ptIdx;  // the vector of id in noground cloud
+};
+
+// frame_SSC
+class SSC{
+public:
+    int frame_id;
+
+    int range_num;
+    int sector_num;
+    int azimuth_num;
+    int bin_num;
+
+    std::vector<PointAPRI> apri_vec;
+    std::unordered_map<int, Voxel> hash_cloud;
+
+    boost::shared_ptr<PatchWork<PointType>> PatchworkGroundSeg;   // patchwork
+    pcl::PointCloud<PointType>::Ptr cloud_g; // ground
+    pcl::PointCloud<PointType>::Ptr cloud_ng;
+    pcl::PointCloud<PointType>::Ptr cloud_use;
+    pcl::PointCloud<PointType>::Ptr cloud_d;  // dynamic
+    pcl::PointCloud<PointType>::Ptr cloud_nd;
+
+    void allocateMemory(){
+        PatchworkGroundSeg.reset(new PatchWork<PointType>());
+        cloud_g.reset(new pcl::PointCloud<PointType>());
+        cloud_ng.reset(new pcl::PointCloud<PointType>());
+        cloud_use.reset(new pcl::PointCloud<PointType>());
+        cloud_d.reset(new pcl::PointCloud<PointType>());
+        cloud_nd.reset(new pcl::PointCloud<PointType>());
+    }
+
+    void extractGroudByPatchWork(const pcl::PointCloud<PointType>::Ptr& cloud_in){
+        double time_pw;
+        PatchworkGroundSeg->set_sensor(SENSOR_HEIGHT);
+        PatchworkGroundSeg->estimate_ground(*cloud_in, *cloud_g, *cloud_ng, time_pw);
+        std::cout << "Ground Extract: " << " all pt num: " << cloud_in->points.size()
+                                        << " sensor height: " << SENSOR_HEIGHT
+                                        << " ground pt num: " << cloud_g->points.size()
+                                        << " non-ground pt num: " << cloud_ng->points.size()
+                                        << " time cost: " << time_pw << std::endl;
+    }
+
+    void makeApriVec(const pcl::PointCloud<PointType>::Ptr& cloud_){
+        for(size_t i = 0; i < cloud_->points.size(); i++){
+            PointType pt = cloud_->points[i];
+            float dis = pointDistance2d(pt);
+            float angle = getPolarAngle(pt);
+            float azimuth = getAzimuth(pt);
+            if(dis < MIN_DIS || dis > MAX_DIS){
+                continue;
+            }
+            if(angle < MIN_ANGLE || angle > MAX_ANGLE){
+                continue;
+            }
+            if(azimuth < MIN_AZIMUTH || azimuth > MAX_AZIMUTH){
+                continue;
+            }
+
+            cloud_use->points.push_back(pt);  
+
+            PointAPRI apri;
+            apri.x = pt.x;
+            apri.y = pt.y;
+            apri.z = pt.z;
+            apri.range = dis;
+            apri.angle = angle;
+            apri.azimuth = azimuth;
+            apri.range_idx = std::ceil((dis - MIN_DIS) / RANGE_RES) - 1;
+            apri.sector_idx = std::ceil((angle - MIN_ANGLE) / SECTOR_RES) - 1;
+            apri.azimuth_idx = std::ceil((azimuth - MIN_AZIMUTH) / AZIMUTH_RES) -1;
+            apri.voxel_idx = apri.azimuth_idx * RANGE_NUM * SECTOR_NUM + apri.range_idx * SECTOR_NUM + apri.sector_idx;
+            if(apri.voxel_idx > BIN_NUM){
+                ROS_WARN("pt %d can't find its bin", (int)i);
+                continue;
+            }
+            apri_vec.emplace_back(apri);
+
+            std::cout << "apri vec size: " << apri_vec.size() << " py use num: " << cloud_use->points.size() << std::endl;
+        }
+    }
+
+    void makeHashCloud(const std::vector<PointAPRI>& apriIn_){
+        std::unordered_map<int, Voxel>::iterator it_find;
+        for(size_t i = 0; i < apriIn_.size(); i++){
+            PointAPRI apri = apriIn_[i];
+            it_find = hash_cloud.find(apri.voxel_idx);
+            if(it_find != hash_cloud.end()){
+                it_find->second.ptIdx.emplace_back(i);
+            }
+            else{
+                Voxel voxel;
+                voxel.ptIdx.emplace_back(i);
+                voxel.range_idx = apri.range_idx;
+                voxel.sector_idx = apri.sector_idx;
+                voxel.azimuth_idx = apri.azimuth_idx;
+                float range_center = (apri.range_idx * 2 + 1) / 2 * RANGE_RES + MIN_DIS;
+                float sector_center = deg2rad((apri.sector_idx * 2 + 1) / 2 * SECTOR_RES) + MIN_ANGLE;
+                float azimuth_center = deg2rad((apri.azimuth_idx * 2 + 1) / 2 * AZIMUTH_RES) + deg2rad(MIN_AZIMUTH);
+                voxel.center.x = range_center * std::cos(sector_center);
+                voxel.center.y = range_center * std::sin(sector_center);
+                voxel.center.z = range_center * std::tan(azimuth_center);
+                voxel.center.intensity = apri.voxel_idx;
+                hash_cloud.insert(std::make_pair(apri.voxel_idx, voxel));
+            }
+        }
+        std::cout << "hash cloud size: " << hash_cloud.size() << std::endl;
+    }
+
+    ~SSC(){}
+    SSC(const pcl::PointCloud<PointType>::Ptr& cloud_in, const int& id){
+        frame_id = id;
+        std::cout << ANSI_COLOR_GREEN << "current frame id: " << frame_id << ANSI_COLOR_RESET << std::endl;
+        allocateMemory();
+        extractGroudByPatchWork(cloud_in);
+        makeApriVec(cloud_ng);
+        makeHashCloud(apri_vec);
+    }
+
+};
+
+class TGRS{
+
+};

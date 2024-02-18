@@ -18,7 +18,7 @@ preprocess:
     lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
     livox_type: 1                # 1 for LIVOX_CUS
     scan_line:  16
-    blind: 2
+    blind: 1
     feature_enabled: 0  # bool
     point_filter_num: 1 # bool
     scan_rate: 10 
@@ -38,10 +38,10 @@ mapping:
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    180.0
-    det_range:     100.0
+    fov_degree:    360.0
+    det_range:     150.0
     cube_len: 200   # range
-    extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
+    extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
     mappingSurfLeafSize: 0.1
     keyframeAddingDistThreshold: 1.0
     keyframeAddingAngleThreshold: 0.2
@@ -56,7 +56,7 @@ ikdtree:
     filter_size_map_min: 0.2
 
 loop:
-    loopClosureEnableFlag: true
+    loopClosureEnableFlag: false
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0

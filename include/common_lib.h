@@ -961,4 +961,42 @@ void pubRangeImg(cv::Mat& _rimg,
     if (_publiser.getNumSubscribers() != 0)
         _publiser.publish(_msg);    
 } // pubRangeImg
+    
+template<typename PointT> 
+float pointDistance3d(const PointT& p1, const PointT& p2){
+    return (float)sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z));
+}
+
+template<typename PointT> 
+float pointDistance2d(const PointT& p1, const PointT& p2){
+    return (float)sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+}
+
+template<typename PointT> 
+float pointDistance3d(const PointT& p1){
+    return (float)sqrt((p1.x)*(p1.x) + (p1.y)*(p1.y) + (p1.z)*(p1.z));
+}
+
+template<typename PointT> 
+float pointDistance2d(const PointT& p1){
+    return (float)sqrt((p1.x)*(p1.x) + (p1.y)*(p1.y));
+}
+
+template<typename PointT> 
+float getPolarAngle(const PointT& p){
+    if(p.x == 0 && p.y == 0){
+        return 0.f;
+    }
+    else if(p.y >= 0){
+        return (float)rad2deg((float)atan2(p.y, p.x));
+    }
+    else if(p.y < 0){
+        return (float)rad2deg((float)atan2(p.y, p.x) + 2*M_PI);
+    }
+}
+
+template<typename PointT> 
+float getAzimuth(const PointT& p){
+    return (float)rad2deg((float)atan2(p.z, (float)pointDistance2d(p)));
+}
 

@@ -726,8 +726,9 @@ void saveKeyFramesAndFactor()
     state_updated.pos = pos;
     state_updated.rot = q;
     state_point = state_updated; // 对state_point进行更新,state_point可视化用到
-    // if(aLoopIsClosed == true )
-    kf.change_x(state_updated); // 对cur_pose进行isam2优化后的修正
+
+    if(aLoopIsClosed == true)
+        kf.change_x(state_updated); // 对cur_pose进行isam2优化后的修正
 
     pcl::PointCloud<PointType>::Ptr thisSurfKeyFrame(new pcl::PointCloud<PointType>());
     pcl::copyPointCloud(*feats_undistort, *thisSurfKeyFrame); // 存储关键帧,没有降采样的点云
