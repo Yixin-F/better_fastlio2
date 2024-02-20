@@ -10,17 +10,19 @@
 #define MAX_DIS 50.0
 #define MIN_ANGLE 0.0
 #define MAX_ANGLE 360.0
-#define MIN_AZIMUTH 30.0
-#define MAX_AZIMUTH 60.0
+#define MIN_AZIMUTH 10.0
+#define MAX_AZIMUTH 50.0
 
-#define RANGE_RES 0.2
-#define SECTOR_RES 3.0
-#define AZIMUTH_RES 2.0
+#define RANGE_RES 0.25
+#define SECTOR_RES 2.0
+#define AZIMUTH_RES 3.0
 
 #define RANGE_NUM (int)std::ceil((MAX_DIS - MIN_DIS) / RANGE_RES)
 #define SECTOR_NUM (int)std::ceil((MAX_ANGLE - MIN_ANGLE) / SECTOR_RES)
 #define AZIMUTH_NUM (int)std::ceil((MAX_AZIMUTH - MIN_AZIMUTH) / AZIMUTH_RES)
 #define BIN_NUM RANGE_NUM * SECTOR_NUM * AZIMUTH_NUM
+
+#define PD_HEIGHT (double)(SENSOR_HEIGHT + 0.5)
 
 // apiric-format of point
 struct PointAPRI{
@@ -42,6 +44,7 @@ struct Voxel{
     int label = -1;
     PointType center;   // the point center's intensity is its id in voxel cloud
     std::vector<int> ptIdx;  // the vector of id in noground cloud
+    int ptVoxIdx;  // id in voxel's center cloud
 };
 
 // frame_SSC
@@ -56,6 +59,9 @@ public:
 
     std::vector<PointAPRI> apri_vec;
     std::unordered_map<int, Voxel> hash_cloud;
+    std::unordered_map<int, std::vector<int>> cluster_vox;  // cluster name + voxel id
+    std::vector<int> PD_cluster;   // PD cluster name
+    std::vector<int> HD_cluster;   // HD cluster name
 
     boost::shared_ptr<PatchWork<PointType>> PatchworkGroundSeg;   // patchwork
     pcl::PointCloud<PointType>::Ptr cloud_g; // ground
@@ -64,6 +70,8 @@ public:
     pcl::PointCloud<PointType>::Ptr cloud_d;  // dynamic
     pcl::PointCloud<PointType>::Ptr cloud_nd;
 
+    pcl::PointCloud<PointType>::Ptr cloud_vox; // voxel's center cloud
+
     void allocateMemory(){
         PatchworkGroundSeg.reset(new PatchWork<PointType>());
         cloud_g.reset(new pcl::PointCloud<PointType>());
@@ -71,6 +79,7 @@ public:
         cloud_use.reset(new pcl::PointCloud<PointType>());
         cloud_d.reset(new pcl::PointCloud<PointType>());
         cloud_nd.reset(new pcl::PointCloud<PointType>());
+        cloud_vox.reset(new pcl::PointCloud<PointType>());
     }
 
     void extractGroudByPatchWork(const pcl::PointCloud<PointType>::Ptr& cloud_in){
@@ -125,6 +134,7 @@ public:
 
     void makeHashCloud(const std::vector<PointAPRI>& apriIn_){
         std::unordered_map<int, Voxel>::iterator it_find;
+        int count = 0;
         for(size_t i = 0; i < apriIn_.size(); i++){
             PointAPRI apri = apriIn_[i];
             it_find = hash_cloud.find(apri.voxel_idx);
@@ -144,6 +154,9 @@ public:
                 voxel.center.y = range_center * std::sin(sector_center);
                 voxel.center.z = range_center * std::tan(azimuth_center);
                 voxel.center.intensity = apri.voxel_idx;
+                cloud_vox->points.emplace_back(voxel.center);
+                voxel.ptVoxIdx = count;
+                count ++;
                 hash_cloud.insert(std::make_pair(apri.voxel_idx, voxel));
             }
         }
@@ -163,5 +176,19 @@ public:
 };
 
 class TGRS{
+public:
+    // cluster
+    std::vector<int> findVoxelNeighbors(const int& range_idx_, const int& sector_idx_, const int& azimuth_idx_, int size_);
+    void mergeClusters(std::vector<int>& clusterIdxs_, const int& idx1_, const int& idx2_);
+    void cluster(const std::vector<PointAPRI>& apri_vec_, 
+                 std::unordered_map<int, Voxel>& hash_cloud_,
+                 std::unordered_map<int, std::vector<int>>& cluster_vox);
+    std::pair<PointType, PointType> getBoundingBoxOfCloud(const pcl::PointCloud<PointType>::Ptr& cloud_);
+    
+    // classification
+    pcl::PointCloud<PointType>::Ptr getCloudByVec(const std::vector<int>& vec_, const pcl::PointCloud<PointType>::Ptr& cloud_);
+    void recognizePD(SSC& ssc);
 
+    // tracking
+    void trackHD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next);
 };

@@ -1000,3 +1000,30 @@ float getAzimuth(const PointT& p){
     return (float)rad2deg((float)atan2(p.z, (float)pointDistance2d(p)));
 }
 
+template<typename T>
+void addVec(std::vector<T>& vec_central_, const std::vector<T>& vec_add_){
+    vec_central_.insert(vec_central_.end(), vec_add_.begin(), vec_add_.end());
+}
+
+template<typename T>
+void reduceVec(std::vector<T>& vec_central_, const std::vector<T>& vec_reduce_){
+    for(auto it = vec_reduce_.begin(); it != vec_reduce_.end(); it++){
+        vec_central_.erase(std::remove(vec_central_.begin(), vec_central_.end(), *it), vec_central_.end());
+    }
+}
+
+template<typename T>
+void sampleVec(std::vector<T>& vec_central_){
+    std::sort(vec_central_.begin(), vec_central_.end());
+    vec_central_.erase(std::unique(vec_central_.begin(), vec_central_.end()), vec_central_.end());
+}
+
+bool findNameInVec(const int& name_, const std::vector<int>& vec_){
+    if(std::count(vec_.begin(), vec_.end(), name_)){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
