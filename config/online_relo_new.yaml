@@ -1,5 +1,5 @@
 relo:
-    priorDir: "/home/yixin-f/fast-lio2/src/data_loc_parkinglot"
+    priorDir: "/home/yixin-f/fast-lio2/src/data_loc_school"
     cloudTopic: "/cloud_registered"
     poseTopic: "/Odometry"
     searchDis: 5.0
@@ -9,11 +9,17 @@ relo:
     # 5: Our Robust ICP point to plane 6: Sparse ICP 7: Sparse ICP point to plane
     regMode: 0  # (0~7), but methods 4, 5 and 7 need normal information
 
-    extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu
-    extrinsic_R: [ -1, 0, 0, 
-                    0, -1, 0, 
-                    0, 0, 1]
-    # extrinsic_T: [ 0.071, -0.053, 0.097 ]
+    # extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu # parkinglot
+    # extrinsic_R: [ -1, 0, 0, 
+    #                 0, -1, 0, 
+    #                 0, 0, 1]
+
+    # extrinsic_T: [ 0.071, -0.053, 0.097 ] # zhongyifeng
     # extrinsic_R: [ 0.9935, -0.0140, -0.1128,
     #                0.0137, 0.9999, -0.0040,
     #                0.1128, 0.0024, 0.9936]
+
+    extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]   # mid360
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
