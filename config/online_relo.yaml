@@ -1,24 +1,25 @@
-common:
-  rootDir: "/home/fyx/fastlio2/src/onine_relo"
-  pointCloudTopic:  "/os1_points" #"/os_cloud_node/points" #"velodyne_points"    "points_raw"     rslidar_points      # Point cloud data
-  imuTopic: "/imu/data_raw" #"/os_cloud_node/imu" #"imu_data" #"imu_raw"          # IMU data
-  use_lio: true
+relo:
+    priorDir: "/home/yixin-f/fast-lio2/src/data_loc_school"
+    cloudTopic: "/cloud_registered"
+    poseTopic: "/Odometry"
+    searchDis: 5.0
+    searchNum: 1  # if the cloud is dense, please reset it to 1
+    trustDis: 5.0
+    # 0: ICP 1: AA-ICP 2: Our Fast ICP 3: Our Robust ICP 4: ICP Point-to-plane
+    # 5: Our Robust ICP point to plane 6: Sparse ICP 7: Sparse ICP point to plane
+    regMode: 0  # (0~7), but methods 4, 5 and 7 need normal information
 
-preprocess:
-  lidar_type: 2                            # lidar sensor type, either 'Velodyne' or 'Ouster' 'Robosense' 'Livox'
-  livox_type: 1                # 1 for LIVOX_CUS
-  scan_line:  64
-  blind: 4
-  feature_enabled: false  # bool
-  point_filter_num: 1 
-  scan_rate: 10 
+    # extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu # parkinglot
+    # extrinsic_R: [ -1, 0, 0, 
+    #                 0, -1, 0, 
+    #                 0, 0, 1]
 
-mapping:
-  extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu
-  extrinsic_R: [ -1, 0, 0, 
-                 0, -1, 0, 
-                 0, 0, 1]
-  acc_cov: 0.009939570888238808e-03
-  gyr_cov: 0.005636343949698187e-03
-  b_acc_cov: 0.64356659353532566e-03
-  b_gyr_cov: 0.35640318696367613e-03
+    # extrinsic_T: [ 0.071, -0.053, 0.097 ] # zhongyifeng
+    # extrinsic_R: [ 0.9935, -0.0140, -0.1128,
+    #                0.0137, 0.9999, -0.0040,
+    #                0.1128, 0.0024, 0.9936]
+
+    extrinsic_T: [ 0.05512, 0.02226, -0.0297 ]   # mid360
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]

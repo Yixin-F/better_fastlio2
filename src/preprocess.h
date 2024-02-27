@@ -5,25 +5,27 @@ using namespace std;
 
 #define IS_VALID(a) ((abs(a) > 1e8) ? true : false) // 是否是有效值
 
-/**
- * @brief 枚举类型:表示支持的雷达类型
- *
- */
 enum LID_TYPE
 {
-  LIVOX = 1,
-  VELO16
-}; //{1, 2}
+  LIVOX = 1, 
+  VELO16, 
+  OUST64,
+  RS
+}; //{1, 2, 3, 4}
 
-/**
- * @brief 枚举类型:表示livox数据类型
- *
- */
 enum LIVOX_TYPE
 {
   LIVOX_CUS = 1,
   LIVOX_ROS
-}; //{1, 2}
+};
+
+enum TIME_UNIT
+{
+  SEC = 0, 
+  MS = 1, 
+  US = 2, 
+  NS = 3
+};
 
 enum Feature
 {
@@ -41,6 +43,7 @@ enum Surround
   Prev,
   Next
 };
+
 enum E_jump
 {
   Nr_nor,
@@ -69,10 +72,6 @@ struct orgtype
   }
 };
 
-/**
- * @brief livox_ros数据结构
- *
- */
 namespace livox_ros
 {
   struct EIGEN_ALIGN16 Point
@@ -89,12 +88,9 @@ namespace livox_ros
 }
 // 注册livox_ros的Point类型
 POINT_CLOUD_REGISTER_POINT_STRUCT(livox_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(std::uint8_t, tag, tag)(std::uint8_t, line, line)(std::uint8_t, reflectivity, reflectivity)(std::uint32_t, offset_time, offset_time)(float, rgb, rgb))
+                                  (float, x, x)(float, y, y)(float, z, z)
+                                  (float, intensity, intensity)(std::uint8_t, tag, tag)(std::uint8_t, line, line)(std::uint8_t, reflectivity, reflectivity)(std::uint32_t, offset_time, offset_time)(float, rgb, rgb))
 
-/**
- * @brief velodyne数据结构
- *
- */
 namespace velodyne_ros
 {
   struct EIGEN_ALIGN16 Point
@@ -106,9 +102,30 @@ namespace velodyne_ros
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // 进行内存对齐
   };
 }
-// 注册velodyne_ros的Point类型
 POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, time, time)(std::uint16_t, ring, ring))
+                                  (float, x, x)(float, y, y)(float, z, z)
+                                  (float, intensity, intensity)(float, time, time)(std::uint16_t, ring, ring))
+
+namespace ouster_ros 
+{
+  struct EIGEN_ALIGN16 Point
+  {
+      PCL_ADD_POINT4D;
+      float intensity;
+      uint32_t t;
+      uint16_t reflectivity;
+      uint8_t  ring;
+      uint16_t ambient;
+      uint32_t range;
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+}  // namespace ouster_ros
+POINT_CLOUD_REGISTER_POINT_STRUCT(ouster_ros::Point,
+    (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+    // use std::uint32_t to avoid conflicting with pcl::uint32_t
+    (std::uint32_t, t, t)(std::uint16_t, reflectivity, reflectivity)(std::uint8_t, ring, ring)
+    (std::uint16_t, ambient, ambient)(std::uint32_t, range, range)
+)
 
 namespace rslidar_ros
 {
@@ -122,7 +139,8 @@ namespace rslidar_ros
   };
 } // namespace rslidar_ros
 POINT_CLOUD_REGISTER_POINT_STRUCT(rslidar_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, curvature)(float, time, normal_x)(uint16_t, ring, ring))
+                                  (float, x, x)(float, y, y)(float, z, z)
+                                  (float, intensity, curvature)(float, time, normal_x)(uint16_t, ring, ring))
 
 /**
  * @brief Preproscess类:用于对激光雷达点云数据进行预处理
@@ -145,15 +163,17 @@ public:
   pcl::PointCloud<PointType> pl_full, pl_corn, pl_surf;                         // 全部点、边缘点、平面点
   pcl::PointCloud<PointType> pl_buff[128];                                      // maximum 128 line lidar
   vector<orgtype> typess[128];                                      // maximum 128 line lidar
-  int lidar_type, livox_type, point_filter_num, N_SCANS, SCAN_RATE; // 雷达类型、livox数据类型,采样间隔、扫描线数、扫描频率
+  float time_unit_scale;
+  int lidar_type, livox_type, point_filter_num, N_SCANS, SCAN_RATE, time_unit; // 雷达类型、livox数据类型,采样间隔、扫描线数、扫描频率
   double blind;                                                     // 最小距离阈值(盲区),小于此阈值不计算特征
   bool feature_enabled, given_offset_time;                          // 是否进行特征提取、是否进行时间偏移
   ros::Publisher pub_full, pub_surf, pub_corn;
 
 private:
   void livox_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg); // 用于对Livox激光雷达数据进行处理
-  void livoxros_handler(const sensor_msgs::PointCloud2::ConstPtr &msg); // 用于对velodyne激光雷达数据进行处理
+  void livoxros_handler(const sensor_msgs::PointCloud2::ConstPtr &msg); 
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg); // 用于对velodyne激光雷达数据进行处理
+  void oust64_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void give_feature(pcl::PointCloud<PointType> &pl, vector<orgtype> &types);        // 当前扫描线点云，扫描点属性
   void pub_func(pcl::PointCloud<PointType> &pl, const ros::Time &ct);
   int plane_judge(const pcl::PointCloud<PointType> &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);

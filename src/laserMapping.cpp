@@ -107,7 +107,8 @@ pcl::PointCloud<PointType>::Ptr _featsArray;                                  //
 pcl::VoxelGrid<PointType> downSizeFilterSurf; // 单帧内降采样使用voxel grid
 pcl::VoxelGrid<PointType> downSizeFilterMap;  // 未使用
 
-KD_TREE ikdtree; // ikdtree类
+// KD_TREE ikdtree; // ikdtree old 类
+KD_TREE<PointType> ikdtree; // ikdtree new 类
 
 // TODO: 做全局sc回环其实没必要，现有版本是先最近位姿搜索再使用scan2map的sc匹配
 ScanContext::SCManager scLoop; // sc 类
@@ -635,7 +636,7 @@ void recontructIKdTree()
         int featsFromMapNum = ikdtree.validnum();
         kdtree_size_st = ikdtree.size();
 
-        featsFromMap->clear(); // TODO: right?
+        // featsFromMap->clear(); // TODO: right?
         featsFromMap->points = subMapKeyFramesDS->points;
 
         std::cout << "featsFromMapNum  =  " << featsFromMapNum << "\t"
@@ -662,7 +663,7 @@ void saveKeyFramesAndFactor()
     // 激光里程计因子(from fast-lio)
     addOdomFactor();
 
-    // addGPSFactor();   // TODO: 
+    // addGPSFactor();   // TODO: GPS
 
     // 回环因子
     addLoopFactor();
@@ -703,6 +704,10 @@ void saveKeyFramesAndFactor()
     thisPose6D.x = thisPose3D.x;
     thisPose6D.y = thisPose3D.y;
     thisPose6D.z = thisPose3D.z;
+
+    // TODO:
+    thisPose3D.z = 0.0; // FIXME: right?
+
     thisPose6D.intensity = thisPose3D.intensity;
     thisPose6D.roll = latestEstimate.rotation().roll();
     thisPose6D.pitch = latestEstimate.rotation().pitch();
@@ -717,11 +722,6 @@ void saveKeyFramesAndFactor()
     Eigen::Vector3d pos(latestEstimate.translation().x(), latestEstimate.translation().y(), latestEstimate.translation().z());
     Eigen::Quaterniond q = EulerToQuat(latestEstimate.rotation().roll(), latestEstimate.rotation().pitch(), latestEstimate.rotation().yaw());
 
-    // // FIXME: just refine z for online relo
-    // Eigen::Vector3d pos(state_updated.pos(0), state_updated.pos(1), latestEstimate.translation().z());
-    // vect3 euler = SO3ToEuler(state_updated.rot);
-    // Eigen::Quaterniond q = EulerToQuat(euler(0), euler(1), euler(2));
-
     // 更新状态量
     state_updated.pos = pos;
     state_updated.rot = q;
@@ -734,7 +734,7 @@ void saveKeyFramesAndFactor()
     pcl::copyPointCloud(*feats_undistort, *thisSurfKeyFrame); // 存储关键帧,没有降采样的点云
     surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
-    updatePath(thisPose6D); // 可视化update后的最新位姿 // FIXME: just refine z for online relo
+    updatePath(thisPose6D); // 可视化update后的最新位姿 
 
     // 清空局部map, reconstruct  ikdtree submap
     if (recontructKdTree){
@@ -771,10 +771,10 @@ void correctPoses()
             updatePath(cloudKeyPoses6D->points[i]);
         }
 
-        // // 清空局部map, reconstruct  ikdtree submap
-        // if (recontructKdTree){
-        //     recontructIKdTree();
-        // }
+        // 清空局部map, reconstruct  ikdtree submap
+        if (recontructKdTree){
+            recontructIKdTree();
+        }
         
         ROS_INFO("ISMA2 Update");
         aLoopIsClosed = false;
@@ -851,12 +851,6 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
     }
     if (nearKeyframes->empty())
         return;
-
-    // 降采样, but it affects the precision
-    pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
-    downSizeFilterICP.setInputCloud(nearKeyframes);
-    downSizeFilterICP.filter(*cloud_temp);
-    *nearKeyframes = *cloud_temp;
 }
 
 /**
@@ -922,13 +916,13 @@ void performLoopClosure()
 
     // ICP设置
     pcl::IterativeClosestPoint<PointType, PointType> icp; // 使用icp来进行帧到局部地图的配准
-    icp.setMaxCorrespondenceDistance(150);                // 设置对应点最大欧式距离,只有对应点之间的距离小于该设置值的对应点才作为ICP计算的点对
+    icp.setMaxCorrespondenceDistance(200);                // 设置对应点最大欧式距离,只有对应点之间的距离小于该设置值的对应点才作为ICP计算的点对
     icp.setMaximumIterations(100);                        // 迭代停止条件一:设置最大的迭代次数
     icp.setTransformationEpsilon(1e-6);                   // 迭代停止条件二:设置前后两次迭代的转换矩阵的最大容差,一旦两次迭代小于最大容差,则认为收敛到最优解,迭代停止
     icp.setEuclideanFitnessEpsilon(1e-6);                 // 迭代终止条件三:设置前后两次迭代的点对的欧式距离均值的最大容差
     icp.setRANSACIterations(0);                           // 设置RANSAC运行次数
 
-    // scan-to-map,调用icp匹配
+    // map-to-map,调用icp匹配
     icp.setInputSource(cureKeyframeCloud); // 设置原始点云
     icp.setInputTarget(prevKeyframeCloud); // 设置目标点云
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
@@ -949,6 +943,7 @@ void performLoopClosure()
         // TODO: icp.getFinalTransformation()可以用来得到精准位姿
         pcl::PointCloud<PointType>::Ptr closed_cloud(new pcl::PointCloud<PointType>());
         pcl::transformPointCloud(*cureKeyframeCloud, *closed_cloud, icp.getFinalTransformation());
+        closed_cloud = transformPointCloud(closed_cloud, &copy_cloudKeyPoses6D->points[loopKeyCur]);
         publishCloud(&pubIcpKeyFrames, closed_cloud, timeLaserInfoStamp, odometryFrame);
     }
 
@@ -1091,8 +1086,8 @@ void points_cache_collect()
 {
     PointVector points_history;
     ikdtree.acquire_removed_points(points_history);
-    for (int i = 0; i < points_history.size(); i++)
-        _featsArray->push_back(points_history[i]);
+    // for (int i = 0; i < points_history.size(); i++)
+    //     _featsArray->push_back(points_history[i]);
 }
 
 BoxPointType LocalMap_Points;      // ikdtree中,局部地图的包围盒角点
@@ -1609,7 +1604,7 @@ void publish_path(const ros::Publisher pubPath)
 
     static int jjj = 0;
     jjj++;
-    if (jjj % 2 == 0)
+    if (jjj % 10 == 0)
     {
         path.poses.push_back(msg_body_pose);
         pubPath.publish(path);
@@ -1637,9 +1632,8 @@ void publish_path_update(const ros::Publisher pubPath)
         /*** if path is too large, the rviz will crash ***/
         static int kkk = 0;
         kkk++;
-        if (kkk % 2 == 0)
+        if (kkk % 10 == 0)
         {
-            // path.poses.push_back(globalPath);
             globalPath.header.stamp = timeLaserInfoStamp;
             globalPath.header.frame_id = odometryFrame;
             pubPath.publish(globalPath);
@@ -2012,6 +2006,7 @@ int main(int argc, char **argv)
     nh.param<int>("preprocess/scan_rate", p_pre->SCAN_RATE, 10);
     nh.param<int>("preprocess/point_filter_num", p_pre->point_filter_num, 1);
     nh.param<bool>("preprocess/feature_extract_enable", p_pre->feature_enabled, false);
+    nh.param<int>("preprocess/time_unit", p_pre->time_unit, US);
 
     // camera 
     nh.param<bool>("camera/camera_en", camera_en, false);
@@ -2224,6 +2219,8 @@ int main(int argc, char **argv)
             state_point = kf.get_x();                                               // 获取kf预测的全局状态
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I; // W下雷达lidar系的位置,W^p_L=W^p_I+W^R_I*I^t_L
 
+            // TODO: add dynamic remove here
+
             // 如果去畸变点云数据为空,则代表了激光雷达没有完成去畸变,此时还不能初始化成功
             if (feats_undistort->empty() || (feats_undistort == NULL))
             {
@@ -2280,7 +2277,7 @@ int main(int argc, char **argv)
             {
                 PointVector().swap(ikdtree.PCL_Storage);                             // 释放PCL_Storage的内存
                 ikdtree.flatten(ikdtree.Root_Node, ikdtree.PCL_Storage, NOT_RECORD); // 把树展平用于展示
-                featsFromMap->clear();
+                // featsFromMap->clear();
                 featsFromMap->points = ikdtree.PCL_Storage;
                 publish_map(pubLaserCloudMap);
             }

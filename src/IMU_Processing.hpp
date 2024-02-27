@@ -1,7 +1,7 @@
 #include "common_lib.h"
 #include "use-ikfom.hpp"
 
-#define MAX_INI_COUNT (20)
+#define MAX_INI_COUNT (10)
 
 /**
  * @brief 判断点的时间是否先后颠倒
@@ -392,7 +392,7 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
  */
 void ImuProcess::Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, pcl::PointCloud<PointType>::Ptr cur_pcl_un_)
 {
-  double t1, t2;
+  double t1,t2;
   t1 = omp_get_wtime();
 
   if (meas.imu.empty())

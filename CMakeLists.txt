@@ -126,7 +126,7 @@ add_library(preprocess  src/preprocess.cpp)
 add_library(sc include/sc-relo/Scancontext.cpp)
 add_library(incremental_mapping include/multi-session/Incremental_mapping.cpp include/sc-relo/Scancontext.cpp)
 # add_library(fpfh_teaser include/teaser-toolkit/fpfh_teaser.cpp)
-add_library(pose_estimator include/online-relo/pose_estimator_new.cpp include/sc-relo/Scancontext.cpp)
+add_library(pose_estimator include/online-relo/pose_estimator.cpp include/sc-relo/Scancontext.cpp)
 add_library(tgrs include/dynamic-remove/tgrs.cpp)
 
 # fastlio2 mapping

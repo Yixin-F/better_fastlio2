@@ -18,10 +18,11 @@ preprocess:
     lidar_type: 2                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
     livox_type: 1                # 1 for LIVOX_CUS
     scan_line:  16
-    blind: 1
+    blind: 2
     feature_enabled: 0  # bool
-    point_filter_num: 1 # bool
+    point_filter_num: 4 # bool
     scan_rate: 10 
+    times_unit: 2 
 
 camera:
     camera_en: false
@@ -38,29 +39,29 @@ mapping:
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    360.0
-    det_range:     150.0
-    cube_len: 200   # range
+    fov_degree:    180.0
+    det_range:     100.0
+    cube_len: 1000   # range
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
-    mappingSurfLeafSize: 0.1
+    mappingSurfLeafSize: 0.2
     keyframeAddingDistThreshold: 1.0
     keyframeAddingAngleThreshold: 0.2
-    extrinsic_T: [ 0.071, -0.053, 0.097 ]
-    extrinsic_R: [ 0.9935, -0.0140, -0.1128,
-                   0.0137, 0.9999, -0.0040,
-                   0.1128, 0.0024, 0.9936]
+    extrinsic_T: [ 0.031, -0.10, 0.11]
+    extrinsic_R: [ 0.9994142, 0.03275957, 0.00990251,
+                  -0.03266505,  0.99942062, -0.00956125,
+                  -0.01021,  0.00923218,  0.99990526]
 
 ikdtree:
     max_iteration: 3
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    filter_size_map_min: 0.2
+    filter_size_map_min: 0.5
 
 loop:
-    loopClosureEnableFlag: false
+    loopClosureEnableFlag: true
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0
-    historyKeyframeSearchNum: 1
+    historyKeyframeSearchNum: 2
     historyKeyframeFitnessScore: 0.2
 
 segment:
@@ -78,7 +79,7 @@ publish:
 
 visualization:
     globalMapVisualizationSearchRadius: 10.0
-    globalMapVisualizationPoseDensity: 5
-    globalMapVisualizationLeafSize: 0.5
+    globalMapVisualizationPoseDensity: 0.5
+    globalMapVisualizationLeafSize: 0.2
     visulize_IkdtreeMap: true
 

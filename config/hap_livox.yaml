@@ -17,11 +17,12 @@ common:
 preprocess:
     lidar_type: 1                # 1 for Livox serials LiDAR, 2 for Velodyne LiDAR
     livox_type: 1                # 1 for LIVOX_CUS
-    scan_line:  6
-    blind: 4
+    scan_line:  4
+    blind: 0.5
     feature_enabled: 0  # bool
-    point_filter_num: 1 # bool
+    point_filter_num: 3 # bool
     scan_rate: 10 
+    time_unit: 1
 
 camera:
     camera_en: false
@@ -38,9 +39,9 @@ mapping:
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    100
-    det_range:     260.0
-    cube_len: 200   # range
+    fov_degree:    360
+    det_range:     100.0
+    cube_len: 1000   # range
     extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
     mappingSurfLeafSize: 0.2
     keyframeAddingDistThreshold: 1.0
@@ -53,14 +54,14 @@ mapping:
 ikdtree:
     max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    filter_size_map_min: 0.2
+    filter_size_map_min: 0.1
 
 loop:
     loopClosureEnableFlag: true
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0
-    historyKeyframeSearchNum: 1
+    historyKeyframeSearchNum: 1  # submap
     historyKeyframeFitnessScore: 0.2
 
 segment:
@@ -77,7 +78,7 @@ publish:
     scan_bodyframe_pub_en: true  # true: output the point cloud scans in IMU-body-frame
 
 visualization:
-    globalMapVisualizationSearchRadius: 10.0
-    globalMapVisualizationPoseDensity: 5
-    globalMapVisualizationLeafSize: 0.5
+    globalMapVisualizationSearchRadius: 10.0  # ikdtree search
+    globalMapVisualizationPoseDensity: 1   # ikdtree pose
+    globalMapVisualizationLeafSize: 0.2  # ikdtree point
     visulize_IkdtreeMap: true
