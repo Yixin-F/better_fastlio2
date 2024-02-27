@@ -153,6 +153,62 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: Intensity
+          Decay Time: 0
+          Enabled: false
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: submap
+          Position Transformer: XYZ
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.009999999776482582
+          Style: Points
+          Topic: /fast_lio_sam/mapping/keyframe_submap
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 10
+            Min Value: -10
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz/PointCloud2
+          Color: 255; 255; 255
+          Color Transformer: ""
+          Decay Time: 0
+          Enabled: false
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Min Color: 0; 0; 0
+          Name: icpCorrectCloud
+          Position Transformer: ""
+          Queue Size: 10
+          Selectable: true
+          Size (Pixels): 3
+          Size (m): 0.009999999776482582
+          Style: Flat Squares
+          Topic: /fast_lio_sam/mapping/icp_loop_closure_corrected_cloud
+          Unreliable: false
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: false
       Enabled: true
       Name: mapping
     - Class: rviz/Group
@@ -369,7 +425,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 606.6536865234375
+      Distance: 203.64508056640625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -377,17 +433,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 23.69704246520996
-        Y: -1.524769902229309
-        Z: -25.6987361907959
+        X: -27.5877742767334
+        Y: 27.255796432495117
+        Z: -53.8653450012207
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5747984051704407
+      Pitch: 1.4347964525222778
       Target Frame: global
-      Yaw: 5.9690399169921875
+      Yaw: 0.26086100935935974
     Saved: ~
 Window Geometry:
   Displays:
@@ -406,4 +462,4 @@ Window Geometry:
     collapsed: true
   Width: 2416
   X: 327
-  Y: 435
+  Y: 361

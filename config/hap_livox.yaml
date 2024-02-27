@@ -41,7 +41,7 @@ mapping:
     b_gyr_cov: 0.0001
     fov_degree:    360
     det_range:     100.0
-    cube_len: 1000   # range
+    cube_len: 1000  
     extrinsic_est_en:  true      # true: enable the online estimation of IMU-LiDAR extrinsic
     mappingSurfLeafSize: 0.2
     keyframeAddingDistThreshold: 1.0
@@ -54,6 +54,7 @@ mapping:
 ikdtree:
     max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
+    kd_step: 40
     filter_size_map_min: 0.1
 
 loop:

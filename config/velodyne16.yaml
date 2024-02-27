@@ -39,29 +39,35 @@ mapping:
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    180.0
+    fov_degree:    360.0
     det_range:     100.0
-    cube_len: 1000   # range
+    cube_len: 1500   
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
     mappingSurfLeafSize: 0.2
     keyframeAddingDistThreshold: 1.0
     keyframeAddingAngleThreshold: 0.2
-    extrinsic_T: [ 0.031, -0.10, 0.11]
-    extrinsic_R: [ 0.9994142, 0.03275957, 0.00990251,
-                  -0.03266505,  0.99942062, -0.00956125,
-                  -0.01021,  0.00923218,  0.99990526]
+    # extrinsic_T: [ 0.031, -0.10, 0.11]  # seu
+    # extrinsic_R: [ 0.9994142, 0.03275957, 0.00990251,
+    #               -0.03266505,  0.99942062, -0.00956125,
+    #               -0.01021,  0.00923218,  0.99990526]
+
+    extrinsic_T: [ 0.071, -0.053, 0.097 ] # zhongyifeng
+    extrinsic_R: [ 0.9935, -0.0140, -0.1128,
+                   0.0137, 0.9999, -0.0040,
+                   0.1128, 0.0024, 0.9936]
 
 ikdtree:
-    max_iteration: 3
+    max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    filter_size_map_min: 0.5
+    kd_step: 30
+    filter_size_map_min: 0.2
 
 loop:
     loopClosureEnableFlag: true
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0
-    historyKeyframeSearchNum: 2
+    historyKeyframeSearchNum: 1
     historyKeyframeFitnessScore: 0.2
 
 segment:

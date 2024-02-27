@@ -53,6 +53,7 @@ const float MOV_THRESHOLD = 1.5f; // 当前雷达系中心到各个地图边缘�
 
 // 地图的最小尺寸;视野角度;
 double filter_size_map_min, fov_deg = 0;
+int kd_step = 0;
 float mappingSurfLeafSize;  // map filter
 // 立方体长度;视野一半的角度;视野总角度;总距离;雷达结束时间;雷达初始时间;
 double cube_len = 0, HALF_FOV_COS = 0, FOV_DEG = 0, total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
@@ -588,7 +589,7 @@ void addLoopFactor()
 // TODO: update ikdtree for better visualization at a certain frequency
 void recontructIKdTree()
 {
-    if (updateKdtreeCount == 20)  
+    if (updateKdtreeCount == kd_step)  
     {
         /*** if path is too large, the rviz will crash ***/
         pcl::KdTreeFLANN<PointType>::Ptr kdtreeGlobalMapPoses(new pcl::KdTreeFLANN<PointType>());
@@ -922,6 +923,16 @@ void performLoopClosure()
     icp.setEuclideanFitnessEpsilon(1e-6);                 // 迭代终止条件三:设置前后两次迭代的点对的欧式距离均值的最大容差
     icp.setRANSACIterations(0);                           // 设置RANSAC运行次数
 
+    float com_yaw = align * scLoop.PC_UNIT_SECTORANGLE;
+    PointTypePose com;
+    com.x = 0.0;
+    com.y = 0.0;
+    com.z = 0.0;
+    com.yaw = -com_yaw;
+    com.pitch = 0.0;
+    com.roll = 0.0;
+    cureKeyframeCloud = transformPointCloud(cureKeyframeCloud, &com);
+
     // map-to-map,调用icp匹配
     icp.setInputSource(cureKeyframeCloud); // 设置原始点云
     icp.setInputTarget(prevKeyframeCloud); // 设置目标点云
@@ -930,7 +941,7 @@ void performLoopClosure()
 
     // 检测icp是否收敛以及得分是否满足要求
     if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore){
-        cout << "but they can not be registered by ICP." << endl;
+        cout << "but they can not be registered by ICP." << " icpFitnessScore: " << icp.getFitnessScore() << endl;
         return;
     }
     std::cout.precision(3);
@@ -2030,6 +2041,7 @@ int main(int argc, char **argv)
 
     // ikdtree
     nh.param<int>("ikdtree/max_iteration", NUM_MAX_ITERATIONS, 4);
+    nh.param<int>("ikdtree/kd_step", kd_step, 40);
     nh.param<bool>("ikdtree/recontructKdTree", recontructKdTree, false);
     nh.param<double>("ikdtree/filter_size_map_min", filter_size_map_min, 0.2);
 
