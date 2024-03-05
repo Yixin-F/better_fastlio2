@@ -139,6 +139,10 @@ nav_msgs::Odometry odomAftMapped;         // 只包含了一个位姿
 geometry_msgs::Quaternion geoQuat;        // 四元数
 geometry_msgs::PoseStamped msg_body_pose; // 位姿
 
+nav_msgs::Path path_imu;
+geometry_msgs::PoseStamped msg_imu_pose;
+geometry_msgs::Quaternion geoQuat_imu;
+
 shared_ptr<Preprocess> p_pre(new Preprocess()); // 定义指向激光雷达数据的预处理类Preprocess的智能指针
 shared_ptr<ImuProcess> p_imu(new ImuProcess()); // 定义指向IMU数据预处理类ImuProcess的智能指针
 
@@ -1606,6 +1610,14 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped)
     br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "camera_init", "body"));
 }
 
+void publish_path_imu(const ros::Publisher pubPath){
+    msg_imu_pose.header.stamp = ros::Time().fromSec(lidar_end_time);
+    msg_imu_pose.header.frame_id = "camera_init";
+
+    path_imu.poses.push_back(msg_imu_pose);
+    pubPath.publish(path_imu);
+}
+
 // 发布位姿(未优化)
 void publish_path(const ros::Publisher pubPath)
 {
@@ -2086,6 +2098,9 @@ int main(int argc, char **argv)
     path.header.stamp = ros::Time::now();
     path.header.frame_id = "camera_init";
 
+    path_imu.header.stamp = ros::Time::now();
+    path_imu.header.frame_id = "camera_init";
+
     int effect_feat_num = 0;                  // 有效的特征点数量
     int frame_num = 0;                        // 雷达总帧数
     double deltaT;                            // 平移增量
@@ -2170,6 +2185,7 @@ int main(int argc, char **argv)
     ros::Publisher pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/Laser_map", 100000);                   // no used
     ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
     ros::Publisher pubPath = nh.advertise<nav_msgs::Path>("/path", 1e00000);
+    ros::Publisher pubPathIMU = nh.advertise<nav_msgs::Path>("/path_imu", 1e00000);
     ros::Publisher pubPathUpdate = nh.advertise<nav_msgs::Path>("fast_lio_sam/path_update", 100000); // isam更新后的path
 
     pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("fast_lio_sam/mapping/keyframe_submap", 1);      // 发布局部关键帧map的特征点云
@@ -2226,10 +2242,18 @@ int main(int argc, char **argv)
             svd_time = 0;
             t0 = omp_get_wtime();
 
-            // 根据imu数据序列和lidar数据,向前传播纠正点云的畸变
+            // 根据imu数据序列和lidar数据,向前传播纠正点云的畸变 motion model
             p_imu->Process(Measures, kf, feats_undistort);
             state_point = kf.get_x();                                               // 获取kf预测的全局状态
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I; // W下雷达lidar系的位置,W^p_L=W^p_I+W^R_I*I^t_L
+
+            msg_imu_pose.pose.position.x = state_point.pos(0);
+            msg_imu_pose.pose.position.y = state_point.pos(1);
+            msg_imu_pose.pose.position.z = state_point.pos(2);
+            msg_imu_pose.pose.orientation.x = state_point.rot.coeffs()[0];
+            msg_imu_pose.pose.orientation.y = state_point.rot.coeffs()[1];
+            msg_imu_pose.pose.orientation.z = state_point.rot.coeffs()[2];
+            msg_imu_pose.pose.orientation.w = state_point.rot.coeffs()[3];
 
             // TODO: add dynamic remove here
 
@@ -2301,7 +2325,7 @@ int main(int argc, char **argv)
 
             t2 = omp_get_wtime();
 
-            // 迭代状态估计
+            // 迭代状态估计 measurement model
             double t_update_start = omp_get_wtime();
             double solve_H_time = 0;
             kf.update_iterated_dyn_share_modified(LASER_POINT_COV, solve_H_time); // 迭代卡尔曼滤波
@@ -2332,6 +2356,7 @@ int main(int argc, char **argv)
             {
                 publish_path(pubPath);
                 publish_path_update(pubPathUpdate); // 发布经过isam2优化后的路径
+                publish_path_imu(pubPathIMU);
                 static int jjj = 0;
                 jjj++;
                 if (jjj % 10 == 0)

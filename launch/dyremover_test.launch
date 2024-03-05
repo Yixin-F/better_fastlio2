@@ -1,0 +1,5 @@
+<launch>
+
+	<node pkg="fast_lio_sam" type="dyremover" name="dyremover" output="screen" />
+
+</launch>

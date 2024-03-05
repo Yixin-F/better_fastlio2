@@ -7,13 +7,11 @@ Panels:
         - /Global Options1
         - /mapping1
         - /mapping1/currPoints1/Autocompute Value Bounds1
-        - /Odometry1/Odometry1
         - /Odometry1/Odometry1/Shape1
         - /Odometry1/Odometry1/Covariance1
         - /Odometry1/Odometry1/Covariance1/Position1
         - /Odometry1/Odometry1/Covariance1/Orientation1
-        - /loop_clousre1/Namespaces1
-      Splitter Ratio: 0.6432291865348816
+      Splitter Ratio: 0.6427145600318909
     Tree Height: 1100
   - Class: rviz/Selection
     Name: Selection
@@ -310,8 +308,32 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 138; 226; 52
+      Color: 206; 92; 0
       Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Billboards
+      Line Width: 0.05000000074505806
+      Name: Path_imu
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /path_imu
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 138; 226; 52
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -330,64 +352,6 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /gnss_path
       Unreliable: false
-      Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: false
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 239; 41; 41
-      Max Intensity: 0
-      Min Color: 239; 41; 41
-      Min Intensity: 0
-      Name: keyFrameSubmap
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 4
-      Size (m): 0.30000001192092896
-      Style: Spheres
-      Topic: /fast_lio_sam/mapping/keyframe_submap
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 1000
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
-      Name: OptimizedGLobalmap
-      Position Transformer: XYZ
-      Queue Size: 10000
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.10000000149011612
-      Style: Flat Squares
-      Topic: /fast_lio_sam/mapping/map_global_optimized
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
@@ -425,7 +389,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 203.64508056640625
+      Distance: 115.91618347167969
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -433,17 +397,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -27.5877742767334
-        Y: 27.255796432495117
-        Z: -53.8653450012207
+        X: -202.22412109375
+        Y: 232.71546936035156
+        Z: -59.35859680175781
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4347964525222778
+      Pitch: 1.5597963333129883
       Target Frame: global
-      Yaw: 0.26086100935935974
+      Yaw: 0.575860857963562
     Saved: ~
 Window Geometry:
   Displays:
@@ -462,4 +426,4 @@ Window Geometry:
     collapsed: true
   Width: 2416
   X: 327
-  Y: 361
+  Y: 287

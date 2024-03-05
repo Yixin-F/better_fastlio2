@@ -4,13 +4,13 @@
 #include "patchwork.h"
 #include "tool_color_printf.h"
 
-#define SENSOR_HEIGHT 1.5
+#define SENSOR_HEIGHT 0.4  // FIXME: move it to yaml  # zyf 
 
 #define MIN_DIS 1.0
 #define MAX_DIS 50.0
 #define MIN_ANGLE 0.0
 #define MAX_ANGLE 360.0
-#define MIN_AZIMUTH 10.0
+#define MIN_AZIMUTH -40.0
 #define MAX_AZIMUTH 50.0
 
 #define RANGE_RES 0.25
@@ -23,6 +23,8 @@
 #define BIN_NUM RANGE_NUM * SECTOR_NUM * AZIMUTH_NUM
 
 #define PD_HEIGHT (double)(SENSOR_HEIGHT + 0.5)
+
+#define HD_RATIO (float)0.7  // FIXME: check
 
 // apiric-format of point
 struct PointAPRI{
@@ -43,7 +45,7 @@ struct Voxel{
     int azimuth_idx;
     int label = -1;
     PointType center;   // the point center's intensity is its id in voxel cloud
-    std::vector<int> ptIdx;  // the vector of id in noground cloud
+    std::vector<int> ptIdx;  // the vector of id cloud_use
     int ptVoxIdx;  // id in voxel's center cloud
 };
 
@@ -66,7 +68,9 @@ public:
     boost::shared_ptr<PatchWork<PointType>> PatchworkGroundSeg;   // patchwork
     pcl::PointCloud<PointType>::Ptr cloud_g; // ground
     pcl::PointCloud<PointType>::Ptr cloud_ng;
+
     pcl::PointCloud<PointType>::Ptr cloud_use;
+
     pcl::PointCloud<PointType>::Ptr cloud_d;  // dynamic
     pcl::PointCloud<PointType>::Ptr cloud_nd;
 
@@ -90,7 +94,7 @@ public:
                                         << " sensor height: " << SENSOR_HEIGHT
                                         << " ground pt num: " << cloud_g->points.size()
                                         << " non-ground pt num: " << cloud_ng->points.size()
-                                        << " time cost: " << time_pw << std::endl;
+                                        << " time cost(ms): " << time_pw << std::endl;
     }
 
     void makeApriVec(const pcl::PointCloud<PointType>::Ptr& cloud_){
@@ -127,9 +131,8 @@ public:
                 continue;
             }
             apri_vec.emplace_back(apri);
-
-            std::cout << "apri vec size: " << apri_vec.size() << " py use num: " << cloud_use->points.size() << std::endl;
         }
+        std::cout << "apri vec size: " << apri_vec.size() << " py use num: " << cloud_use->points.size() << std::endl;
     }
 
     void makeHashCloud(const std::vector<PointAPRI>& apriIn_){
@@ -177,6 +180,9 @@ public:
 
 class TGRS{
 public:
+    TGRS(){}
+    ~TGRS(){}
+
     // cluster
     std::vector<int> findVoxelNeighbors(const int& range_idx_, const int& sector_idx_, const int& azimuth_idx_, int size_);
     void mergeClusters(std::vector<int>& clusterIdxs_, const int& idx1_, const int& idx2_);
@@ -190,9 +196,8 @@ public:
     void recognizePD(SSC& ssc);
 
     // tracking
-    void trackHD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next);
+    void trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next);
 
     // save
-    void saveColorCloud()
-
+    void saveColorCloud(SSC& ssc, const std::string& path);
 };

@@ -87,7 +87,7 @@ void TGRS::cluster(const std::vector<PointAPRI>& apri_vec_,
         }
     }
 
-    // voxel cluster
+    // voxels cluster
     std::unordered_map<int, std::vector<int>>::iterator it_v;
     for(size_t i = 0; i < clusterIdxs.size(); i++){
         it_v = cluster_vox.find(clusterIdxs[i]);
@@ -138,7 +138,82 @@ void TGRS::recognizePD(SSC& ssc){
     std::cout << "There are " << ssc.PD_cluster.size() << " PD objects." << std::endl;
 }
 
-void TGRS::trackHD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next){
-    
+void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next){
+    // Step 1: get voxel cloud
+    pcl::PointCloud<PointType>::Ptr voxCloud_pre(new pcl::PointCloud<PointType>());
+    *voxCloud_pre += *ssc_pre.cloud_vox;
+    pcl::PointCloud<PointType>::Ptr voxCloud_next(new pcl::PointCloud<PointType>());
+    *voxCloud_next += *ssc_next.cloud_vox;
+
+    // Step 2: transform voxel cloud
+    Eigen::Affine3f trans_pre = pcl::getTransformation(pose_pre->x, pose_pre->y, pose_pre->z, pose_pre->roll, pose_pre->pitch, pose_pre->yaw);
+    Eigen::Affine3f trans_next = pcl::getTransformation(pose_next->x, pose_next->y, pose_next->z, pose_next->roll, pose_next->pitch, pose_next->yaw);
+    Eigen::Affine3f trans_n2p = trans_pre.inverse() * trans_next;
+    pcl::PointCloud<PointType>::Ptr voxCloud_nextTrans(new pcl::PointCloud<PointType>());
+    transformPointCloud(voxCloud_next, trans_n2p, voxCloud_nextTrans);
+
+    // Step 3: PD projection (tracking)
+    for(auto& pd : ssc_next.PD_cluster){
+        std::vector<int> projIdx;
+        for(auto& voxIdx : ssc_next.cluster_vox[pd]){
+            PointType voxPt = voxCloud_nextTrans->points[ssc_next.hash_cloud[voxIdx].ptVoxIdx];
+            float dis = pointDistance2d(voxPt);
+            float angle = getPolarAngle(voxPt);
+            float azimuth = getAzimuth(voxPt);
+            int range_idx = std::ceil((dis - MIN_DIS) / RANGE_RES) - 1;
+            int sector_idx = std::ceil((angle - MIN_ANGLE) / SECTOR_RES) - 1;
+            int azimuth_idx = std::ceil((azimuth - MIN_AZIMUTH) / AZIMUTH_RES) -1;
+            int voxel_idx = azimuth_idx * RANGE_NUM * SECTOR_NUM + range_idx * SECTOR_NUM + sector_idx;
+            projIdx.emplace_back(voxel_idx);
+        }
+
+        // Step 4: HD detection
+        int all = projIdx.size();
+        int success = 0;
+        std::unordered_map<int, Voxel>::iterator it_find;
+        for(auto& proj : projIdx){
+            it_find = ssc_pre.hash_cloud.find(proj);
+            if(it_find != ssc_pre.hash_cloud.end()){
+                success ++;
+            }
+        }
+        float overlapRatio = (float)success / (float)all;
+        if(overlapRatio <= HD_RATIO){
+            ssc_next.HD_cluster.emplace_back(pd);  // PD to HD
+        }
+    }
+    std::cout << ANSI_COLOR_GREEN << " PD num: " << ssc_next.PD_cluster.size() << "\n"
+              << ANSI_COLOR_RED << " HD num: " << ssc_next.HD_cluster.size() << ANSI_COLOR_RESET << std::endl;
+}
+
+void TGRS::saveColorCloud(SSC& ssc, const std::string& path){
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr colorCloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+    cv::RNG rng(12345);
+    for(auto& it : ssc.cluster_vox){
+        int r, g, b;
+        r = rng.uniform(20, 200); 
+        g = rng.uniform(20, 200); 
+        b = rng.uniform(20, 200); 
+        std::vector<int> ptIdx;
+        for(auto& vox : it.second){
+            addVec(ptIdx, ssc.hash_cloud[vox].ptIdx);
+        }
+        pcl::PointCloud<PointType>::Ptr cloudGrab(new pcl::PointCloud<PointType>());
+        *cloudGrab += *getCloudByVec(ptIdx, ssc.cloud_use);
+        for(size_t i = 0; i < cloudGrab->points.size(); i++){
+            pcl::PointXYZRGB rgb;
+            rgb.x = cloudGrab->points[i].x;
+            rgb.y = cloudGrab->points[i].y;
+            rgb.z = cloudGrab->points[i].z;
+            rgb.r = r;
+            rgb.g = g;
+            rgb.b = b;
+            colorCloud->points.emplace_back(rgb);
+        }
+    }
+    colorCloud->height = 1;
+    colorCloud->width = colorCloud->points.size();
+    std::cout << "segmented cloud size: " << colorCloud->points.size() << std::endl;
+    pcl::io::savePCDFile(path, *colorCloud);
 }
 
