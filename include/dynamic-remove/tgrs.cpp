@@ -139,6 +139,6 @@ void TGRS::recognizePD(SSC& ssc){
 }
 
 void TGRS::trackHD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTypePose* pose_next){
-
+    
 }
 

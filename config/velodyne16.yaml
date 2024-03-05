@@ -4,7 +4,7 @@ common:
     camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 
-    rootDir: "/home/yixin-f/fast-lio2/src/data/"
+    rootDir: "/home/yixin-f/fast-lio2/src/data_lio/"
     savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
     savePCDDirectory: "PCDs/"        
     saveSCD: true 
@@ -39,7 +39,7 @@ mapping:
     gyr_cov: 0.1
     b_acc_cov: 0.0001
     b_gyr_cov: 0.0001
-    fov_degree:    360.0
+    fov_degree:    180.0
     det_range:     100.0
     cube_len: 1500   
     extrinsic_est_en:  false      # true: enable the online estimation of IMU-LiDAR extrinsic
@@ -57,17 +57,17 @@ mapping:
                    0.1128, 0.0024, 0.9936]
 
 ikdtree:
-    max_iteration: 4
-    recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
-    kd_step: 30
+    max_iteration: 3
+    recontructKdTree: false  # if path is too large, the rviz will crash, but default is false
+    kd_step: 50
     filter_size_map_min: 0.2
 
 loop:
-    loopClosureEnableFlag: true
+    loopClosureEnableFlag: false
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0
-    historyKeyframeSearchNum: 1
+    historyKeyframeSearchNum: 2
     historyKeyframeFitnessScore: 0.2
 
 segment:

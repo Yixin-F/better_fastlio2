@@ -4,7 +4,7 @@ common:
     camera_topic: "/usb_cam/image_raw"
     time_sync_en: false         # ONLY turn on when external time synchronization is really not possible
 
-    rootDir: "/home/yixin-f/fast-lio2/src/data/"
+    rootDir: "/home/yixin-f/fast-lio2/src/data_lio/"
     savePCD: true                         # https://github.com/TixiaoShan/LIO-SAM/issues/3
     savePCDDirectory: "PCDs/"        
     saveSCD: true 
