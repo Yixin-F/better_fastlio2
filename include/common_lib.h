@@ -262,6 +262,22 @@ struct Node {
     gtsam::Pose3 initial;
 };
 
+// 定义pose结构体
+struct pose
+{
+    Eigen::Vector3d t;
+    Eigen::Matrix3d R;
+};
+
+/* write2txt format KITTI*/
+void WriteText(std::ofstream &ofs, pose data)
+{
+    ofs << std::fixed << data.R(0, 0) << " " << data.R(0, 1) << " " << data.R(0, 2) << " " << data.t[0] << " "
+        << data.R(1, 0) << " " << data.R(1, 1) << " " << data.R(1, 2) << " " << data.t[1] << " "
+        << data.R(2, 0) << " " << data.R(2, 1) << " " << data.R(2, 2) << " " << data.t[2] << std::endl;
+}
+
+
 using SessionNodes = std::multimap<int, Node>; // from_idx, Node
 using SessionEdges = std::multimap<int, Edge>; // from_idx, Edge
 

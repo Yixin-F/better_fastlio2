@@ -69,6 +69,8 @@ float keyframeAddingDistThreshold;  // 判断是否为关键帧的距离阈值,y
 float keyframeAddingAngleThreshold; // 判断是否为关键帧的角度阈值,yaml
 float surroundingKeyframeDensity;
 
+std::vector<pose> update_nokf_poses;
+
 // loop
 bool startFlag = true;
 bool loopClosureEnableFlag;
@@ -400,6 +402,17 @@ void updatePath(const PointTypePose &pose_in)
     pose_stamped.pose.orientation.y = q.y();
     pose_stamped.pose.orientation.z = q.z();
     pose_stamped.pose.orientation.w = q.w();
+
+    Eigen::Matrix3d R = Exp((double)pose_in.roll, (double)pose_in.pitch, (double)pose_in.yaw);
+    Eigen::Vector3d t((double)pose_in.x, (double)pose_in.y, (double)pose_in.z);
+    pose update_pose;
+    update_pose.R = R;
+    update_pose.t = t;
+    update_nokf_poses.emplace_back(update_pose);
+    
+    // fout_update_pose << std::fixed << R(0, 0) << " " << R(0, 1) << " " << R(0, 2) << " " << t[0] << " "
+    //     << R(1, 0) << " " << R(1, 1) << " " << R(1, 2) << " " << t[1] << " "
+    //     << R(2, 0) << " " << R(2, 1) << " " << R(2, 2) << " " << t[2] << std::endl;
 
     globalPath.poses.push_back(pose_stamped);
 }
@@ -1664,13 +1677,6 @@ void publish_path_update(const ros::Publisher pubPath)
     }
 }
 
-// 定义pose结构体
-struct pose
-{
-    Eigen::Vector3d t;
-    Eigen::Matrix3d R;
-};
-
 bool CreateFile(std::ofstream &ofs, std::string file_path)
 {
     ofs.open(file_path, std::ios::out); // 使用std::ios::out可实现覆盖
@@ -1680,14 +1686,6 @@ bool CreateFile(std::ofstream &ofs, std::string file_path)
         return false;
     }
     return true;
-}
-
-/* write2txt format KITTI*/
-void WriteText(std::ofstream &ofs, pose data)
-{
-    ofs << std::fixed << data.R(0, 0) << " " << data.R(0, 1) << " " << data.R(0, 2) << " " << data.t[0] << " "
-        << data.R(1, 0) << " " << data.R(1, 1) << " " << data.R(1, 2) << " " << data.t[1] << " "
-        << data.R(2, 0) << " " << data.R(2, 1) << " " << data.R(2, 2) << " " << data.t[2] << std::endl;
 }
 
 bool savePoseService(fast_lio_sam::save_poseRequest &req, fast_lio_sam::save_poseResponse &res)
@@ -2156,10 +2154,11 @@ int main(int argc, char **argv)
     string pos_log_dir = log_path + "pos_log.txt";
     fp = fopen(pos_log_dir.c_str(), "w");
 
-    ofstream fout_pre, fout_out, fout_dbg;
+    ofstream fout_pre, fout_out, fout_dbg, fout_update_pose;
     fout_pre.open(log_path+ "mat_pre.txt", ios::out);
     fout_out.open(log_path + "mat_out.txt", ios::out);
     fout_dbg.open(log_path + "dbg.txt", ios::out);
+    fout_update_pose.open(log_path + "update_pose.txt", ios::out);
     if (fout_pre && fout_out)
         cout << "~~~~" << rootDir << " file opened" << endl;
     else
@@ -2496,6 +2495,11 @@ int main(int argc, char **argv)
     for(auto& _line: edges_str)
         pgSaveStream << _line << std::endl;
 
+    for(auto& po : update_nokf_poses){
+        WriteText(fout_update_pose, po);
+    }
+    
+    fout_update_pose.close();
     pgSaveStream.close();
 
     // save log

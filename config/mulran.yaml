@@ -51,12 +51,13 @@ mapping:
                    0, 0, 1]
 
 ikdtree:
-    max_iteration: 4
+    max_iteration: 3
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
+    kd_step: 50
     filter_size_map_min: 0.4
 
 loop:
-    loopClosureEnableFlag: false  # set false when using online relo
+    loopClosureEnableFlag: true  # set false when using online relo
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0
