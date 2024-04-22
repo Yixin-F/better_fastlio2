@@ -1,12 +1,18 @@
 import csv
 
-csv_file = '/media/yixin-f/YixinF/Dataset/Mulran/river01/sensor_data/global_pose.csv'
-txt_file = '/home/yixin-f/fast-lio2/src/Mulran/river01/poses.txt'
+file1 = '/home/yixin-f/fast-lio2/src/nclt/groundtruth_2012-02-05.csv'
+file2 = '/home/yixin-f/fast-lio2/src/nclt/groundtruth_2012-02-05.txt'
 
-with open(csv_file, 'r') as csvfile:
-    csvreader = csv.reader(csvfile)
-    with open(txt_file, 'w') as txtfile:
-        for row in csvreader:
-            row_without_first_element = '\t'.join(row[1:])
-            txtfile.write(row_without_first_element + '\n')
+with open(file1, 'r') as csv_file:
+    reader = csv.reader(csv_file)
+    rows = list(reader)
+
+# 打开输出 TXT 文件并写入内容
+with open(file2, 'w') as txt_file:
+    for row in rows:
+        # 将每行用空格连接，并在末尾添加换行符
+        # row[4] = str(float(row[4]))
+        # row[8] = str(float(row[8]))
+        # row[12] = str(float(row[12]))
+        txt_file.write(' '.join(row[1:]) + '\n')
 

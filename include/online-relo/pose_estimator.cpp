@@ -40,6 +40,8 @@ pose_estimator::pose_estimator(){
     subPose = nh.subscribe<nav_msgs::Odometry>(poseTopic, 500, &pose_estimator::poseCBK, this);
     pubCloud = nh.advertise<sensor_msgs::PointCloud2>("/cloud", 1);
     pubPose = nh.advertise<nav_msgs::Odometry>("/pose", 1);
+    fout_relo.open(priorDir + "relo_pose.txt", ios::out);
+    
 
     subExternalPose = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/initialpose", 500, &pose_estimator::externalCBK, this);
     pubPriorMap = nh.advertise<sensor_msgs::PointCloud2>("/prior_map", 1);
@@ -231,6 +233,12 @@ void pose_estimator::run(){
             pose_aft.roll = aft[3];
             pose_aft.pitch = aft[4];
             pose_aft.yaw = aft[5];
+
+            Eigen::Matrix3d R = Exp((double)pose_aft.roll, (double)pose_aft.pitch, (double)pose_aft.yaw);
+            Eigen::Vector3d t((double)pose_aft.x, (double)pose_aft.y, (double)pose_aft.z);
+            fout_relo << std::fixed << R(0, 0) << " " << R(0, 1) << " " << R(0, 2) << " " << t[0] << " "
+                             << R(1, 0) << " " << R(1, 1) << " " << R(1, 2) << " " << t[1] << " "
+                             << R(2, 0) << " " << R(2, 1) << " " << R(2, 2) << " " << t[2] << std::endl;
 ;
             reloPoseBuffer.push_back(pose_aft);
 
@@ -304,6 +312,12 @@ void pose_estimator::run(){
             pose_aft.roll = aft[3];
             pose_aft.pitch = aft[4];
             pose_aft.yaw = aft[5];
+
+            Eigen::Matrix3d R = Exp((double)pose_aft.roll, (double)pose_aft.pitch, (double)pose_aft.yaw);
+            Eigen::Vector3d t((double)pose_aft.x, (double)pose_aft.y, (double)pose_aft.z);
+            fout_relo << std::fixed << R(0, 0) << " " << R(0, 1) << " " << R(0, 2) << " " << t[0] << " "
+                             << R(1, 0) << " " << R(1, 1) << " " << R(1, 2) << " " << t[1] << " "
+                             << R(2, 0) << " " << R(2, 1) << " " << R(2, 2) << " " << t[2] << std::endl;
 
             reloPoseBuffer.push_back(pose_aft);
             std::cout << "reloPoseBuffer size: " << reloPoseBuffer.size() << std::endl;

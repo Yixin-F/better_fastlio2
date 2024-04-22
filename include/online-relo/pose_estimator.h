@@ -66,6 +66,9 @@ public:
     std::deque<pcl::PointCloud<PointType>::Ptr> cloudBuffer;
     std::deque<PointTypePose> poseBuffer_6D;
     std::deque<PointType> poseBuffer_3D;
+    ofstream fout_relo;
+    
+
 
     double ld_time;
     nav_msgs::Path path;                    

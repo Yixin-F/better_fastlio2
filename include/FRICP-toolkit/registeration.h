@@ -5,10 +5,12 @@
 #include "io_pc.h"
 #include "FRICP.h"
 #include "../tool_color_printf.h"
+#include "../common_lib.h"
 
 typedef double Scalar;
 typedef Eigen::Matrix<Scalar, 3, Eigen::Dynamic> Vertices;
 typedef Eigen::Matrix<Scalar, 3, 1> VectorN;
+ofstream fout_time;
 
 class Registeration{
 public:
@@ -23,6 +25,8 @@ public:
                   << "search radius(< 0.5) for difference detection"<< std::endl;
         method = Method(mode_);
         std::cout << ANSI_COLOR_GREEN << "register by Method " << mode_ << ANSI_COLOR_RESET << std::endl;
+        fout_time.open("/home/yixin-f/fast-lio2/src/data_loc/relo_time.txt", ios::out);
+
     }
     ~Registeration() {}
 
@@ -146,6 +150,7 @@ public:
         double end_reg = omp_get_wtime();
         time = end_reg - begin_reg;
         std::cout << "Registration cost(s): " << time << std::endl;
+        fout_time << std::fixed << time << std::endl;
 
         // vertices_source = scale * vertices_source;
         Eigen::Affine3d res_T;

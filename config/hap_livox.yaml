@@ -55,10 +55,10 @@ ikdtree:
     max_iteration: 4
     recontructKdTree: true  # if path is too large, the rviz will crash, but default is false
     kd_step: 40
-    filter_size_map_min: 0.1
+    filter_size_map_min: 0.2
 
 loop:
-    loopClosureEnableFlag: true
+    loopClosureEnableFlag: false
     loopClosureFrequency: 1.0
     historyKeyframeSearchRadius: 10.0
     historyKeyframeSearchTimeDiff: 30.0

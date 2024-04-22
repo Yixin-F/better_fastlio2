@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef PATCHWORK_H
 #define PATCHWORK_H
 
@@ -43,7 +45,7 @@ public:
 
     PatchWork(){
 
-    cout <<  " ----  pathchwork INITIALIZATION  ----" << endl;
+    // cout <<  " ----  pathchwork INITIALIZATION  ----" << endl;
 
 	num_sectors_each_zone_ = {16, 32 ,54, 32};
 	num_rings_each_zone_ =  {2, 4, 4, 4};
@@ -57,19 +59,19 @@ public:
             throw invalid_argument("Some parameters are wrong! Check the elevation/flatness_thresholds");
         }
 
-        cout << (boost::format("Num. sectors: %d, %d, %d, %d") % num_sectors_each_zone_[0] % num_sectors_each_zone_[1] %
-                 num_sectors_each_zone_[2] %
-                 num_sectors_each_zone_[3]).str() << endl;
-        cout << (boost::format("Num. rings: %01d, %01d, %01d, %01d") % num_rings_each_zone_[0] %
-                 num_rings_each_zone_[1] %
-                 num_rings_each_zone_[2] %
-                 num_rings_each_zone_[3]).str() << endl;
-        cout << (boost::format("elevation_thr_: %0.4f, %0.4f, %0.4f, %0.4f ") % elevation_thr_[0] % elevation_thr_[1] %
-                 elevation_thr_[2] %
-                 elevation_thr_[3]).str() << endl;
-        cout << (boost::format("flatness_thr_: %0.4f, %0.4f, %0.4f, %0.4f ") % flatness_thr_[0] % flatness_thr_[1] %
-                 flatness_thr_[2] %
-                 flatness_thr_[3]).str() << endl;
+        // cout << (boost::format("Num. sectors: %d, %d, %d, %d") % num_sectors_each_zone_[0] % num_sectors_each_zone_[1] %
+        //          num_sectors_each_zone_[2] %
+        //          num_sectors_each_zone_[3]).str() << endl;
+        // cout << (boost::format("Num. rings: %01d, %01d, %01d, %01d") % num_rings_each_zone_[0] %
+        //          num_rings_each_zone_[1] %
+        //          num_rings_each_zone_[2] %
+        //          num_rings_each_zone_[3]).str() << endl;
+        // cout << (boost::format("elevation_thr_: %0.4f, %0.4f, %0.4f, %0.4f ") % elevation_thr_[0] % elevation_thr_[1] %
+        //          elevation_thr_[2] %
+        //          elevation_thr_[3]).str() << endl;
+        // cout << (boost::format("flatness_thr_: %0.4f, %0.4f, %0.4f, %0.4f ") % flatness_thr_[0] % flatness_thr_[1] %
+        //          flatness_thr_[2] %
+        //          flatness_thr_[3]).str() << endl;
         num_rings_of_interest_ = elevation_thr_.size();
 
         revert_pc.reserve(NUM_HEURISTIC_MAX_PTS_IN_PATCH);

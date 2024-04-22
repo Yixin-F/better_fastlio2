@@ -10,8 +10,8 @@
 #define MAX_DIS 50.0
 #define MIN_ANGLE 0.0
 #define MAX_ANGLE 360.0
-#define MIN_AZIMUTH -40.0
-#define MAX_AZIMUTH 50.0
+#define MIN_AZIMUTH -30.0
+#define MAX_AZIMUTH 60.0
 
 #define RANGE_RES 0.25
 #define SECTOR_RES 2.0
@@ -25,6 +25,8 @@
 #define PD_HEIGHT (double)(SENSOR_HEIGHT + 0.5)
 
 #define HD_RATIO (float)0.7  // FIXME: check
+
+#define VALID_NUM 5
 
 // apiric-format of point
 struct PointAPRI{
@@ -88,8 +90,19 @@ public:
 
     void extractGroudByPatchWork(const pcl::PointCloud<PointType>::Ptr& cloud_in){
         double time_pw;
+        // pcl::PointCloud<PointType>::Ptr cloud_gound(new pcl::PointCloud<PointType>()); // ground
         PatchworkGroundSeg->set_sensor(SENSOR_HEIGHT);
         PatchworkGroundSeg->estimate_ground(*cloud_in, *cloud_g, *cloud_ng, time_pw);
+        // for(size_t i = 0; i < cloud_gound->points.size(); i++){
+        //     pcl::PointXYZRGB rgb;
+        //     rgb.x = cloud_gound->points[i].x;
+        //     rgb.y = cloud_gound->points[i].y;
+        //     rgb.z = cloud_gound->points[i].z;
+        //     rgb.r = 139.0;
+        //     rgb.g = 69.0;
+        //     rgb.b = 19.0;
+        //     cloud_g->points.emplace_back(rgb);
+        // }
         std::cout << "Ground Extract: " << " all pt num: " << cloud_in->points.size()
                                         << " sensor height: " << SENSOR_HEIGHT
                                         << " ground pt num: " << cloud_g->points.size()

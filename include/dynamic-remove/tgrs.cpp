@@ -126,12 +126,12 @@ void TGRS::recognizePD(SSC& ssc){
     for(auto& it : ssc.cluster_vox){
         std::vector<int> voxIdx;
         for(auto& id : it.second){
-            voxIdx.emplace_back(id);
+            voxIdx.emplace_back(ssc.hash_cloud[id].ptVoxIdx);
         }
         pcl::PointCloud<PointType>::Ptr voxels(new pcl::PointCloud<PointType>());
         *voxels += *getCloudByVec(voxIdx, ssc.cloud_vox);
         std::pair<PointType, PointType> heightPair = getBoundingBoxOfCloud(voxels);
-        if(heightPair.first.z <= -(SENSOR_HEIGHT - 0.2) && (heightPair.second.z + SENSOR_HEIGHT) <= PD_HEIGHT){
+        if((heightPair.first.z <= -(SENSOR_HEIGHT - 0.2)) && ((heightPair.second.z + SENSOR_HEIGHT) <= PD_HEIGHT)){
             ssc.PD_cluster.emplace_back(it.first);
         }
     }
@@ -144,6 +144,8 @@ void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTy
     *voxCloud_pre += *ssc_pre.cloud_vox;
     pcl::PointCloud<PointType>::Ptr voxCloud_next(new pcl::PointCloud<PointType>());
     *voxCloud_next += *ssc_next.cloud_vox;
+    // std::cout << "pre vox cloud size: " << voxCloud_pre->points.size();
+    // std::cout << "next vox cloud size: " << voxCloud_next->points.size();
 
     // Step 2: transform voxel cloud
     Eigen::Affine3f trans_pre = pcl::getTransformation(pose_pre->x, pose_pre->y, pose_pre->z, pose_pre->roll, pose_pre->pitch, pose_pre->yaw);
@@ -151,6 +153,8 @@ void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTy
     Eigen::Affine3f trans_n2p = trans_pre.inverse() * trans_next;
     pcl::PointCloud<PointType>::Ptr voxCloud_nextTrans(new pcl::PointCloud<PointType>());
     transformPointCloud(voxCloud_next, trans_n2p, voxCloud_nextTrans);
+    // pcl::io::savePCDFile("/home/yixin-f/fast-lio2/src/data_dy/vox_next.pcd", *voxCloud_next);
+    // pcl::io::savePCDFile("/home/yixin-f/fast-lio2/src/data_dy/vox_pre.pcd", *voxCloud_pre);
 
     // Step 3: PD projection (tracking)
     for(auto& pd : ssc_next.PD_cluster){
@@ -164,8 +168,17 @@ void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTy
             int sector_idx = std::ceil((angle - MIN_ANGLE) / SECTOR_RES) - 1;
             int azimuth_idx = std::ceil((azimuth - MIN_AZIMUTH) / AZIMUTH_RES) -1;
             int voxel_idx = azimuth_idx * RANGE_NUM * SECTOR_NUM + range_idx * SECTOR_NUM + sector_idx;
-            projIdx.emplace_back(voxel_idx);
+            
+            std::vector<int> neighbor = findVoxelNeighbors(range_idx, sector_idx, azimuth_idx, 1);
+
+            // choice one: find neighbors
+            addVec(projIdx, neighbor);
+
+            // // choice two: direct ptojection
+            // projIdx.emplace_back(voxel_idx);
         }
+        sampleVec(projIdx);
+        std::cout << "cur pd Idx: " << ssc_next.cluster_vox[pd].size() << std::endl;
 
         // Step 4: HD detection
         int all = projIdx.size();
@@ -178,6 +191,7 @@ void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTy
             }
         }
         float overlapRatio = (float)success / (float)all;
+        std::cout << "name: " << pd << " success: " << success << " all: " << all << " overlap ratio: " << overlapRatio << std::endl;
         if(overlapRatio <= HD_RATIO){
             ssc_next.HD_cluster.emplace_back(pd);  // PD to HD
         }

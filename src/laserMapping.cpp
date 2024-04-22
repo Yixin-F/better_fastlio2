@@ -8,6 +8,7 @@
 #include "IMU_Processing.hpp"
 
 #include"sc-relo/Scancontext.h"
+#include"dynamic-remove/tgrs.h"
 
 #define INIT_TIME (0.1)
 #define LASER_POINT_COV (0.001)
@@ -100,6 +101,7 @@ deque<sensor_msgs::Imu::ConstPtr> imu_buffer; // IMU数据缓存队列
 
 pcl::PointCloud<PointType>::Ptr featsFromMap(new pcl::PointCloud<PointType>());           // 提取地图中的特征点,ikdtree获得
 pcl::PointCloud<PointType>::Ptr feats_undistort(new pcl::PointCloud<PointType>());        // 去畸变的点云,lidar系
+pcl::PointCloud<PointType>::Ptr feats_undistort_copy(new pcl::PointCloud<PointType>());        // 去畸变的点云,lidar系
 pcl::PointCloud<PointType>::Ptr feats_down_body(new pcl::PointCloud<PointType>());        // 畸变纠正后降采样的单帧点云,lidar系
 pcl::PointCloud<PointType>::Ptr feats_down_world(new pcl::PointCloud<PointType>());       // 畸变纠正后降采样的单帧点云,world系
 pcl::PointCloud<PointType>::Ptr normvec(new pcl::PointCloud<PointType>(100000, 1));       // 特征点在地图中对应点的,局部平面参数,world系
@@ -134,6 +136,7 @@ MeasureGroup Measures;
 esekfom::esekf<state_ikfom, 12, input_ikfom> kf; // 状态,噪声维度,输入
 state_ikfom state_point;                         // 状态
 vect3 pos_lid;                                   // world系下lidar坐标
+vect3 pos_lid_copy;
 
 // 输出的路径参数
 nav_msgs::Path path;                      // 包含了一系列位姿
@@ -193,6 +196,8 @@ float transformTobeMapped[6]; // TODO: 当前帧的位姿(world系下),x,y,z,rol
 
 std::mutex mtx;
 std::mutex mtxLoopInfo;
+
+TGRS remover;
 
 // gtsam
 gtsam::NonlinearFactorGraph gtSAMgraph; // 实例化一个空的因子图
@@ -2254,7 +2259,43 @@ int main(int argc, char **argv)
             msg_imu_pose.pose.orientation.z = state_point.rot.coeffs()[2];
             msg_imu_pose.pose.orientation.w = state_point.rot.coeffs()[3];
 
-            // TODO: add dynamic remove here
+            // // TODO: add dynamic remove here
+            // if(feats_undistort_copy->points.size() > 0){
+            //     Eigen::Vector4d q(msg_imu_pose.pose.orientation.x, msg_imu_pose.pose.orientation.y, msg_imu_pose.pose.orientation.z, msg_imu_pose.pose.orientation.w);
+            //     Eigen::Matrix3d R = quaternionToRotation(quaternionNormalize(q));
+            //     Eigen::Matrix<double, 3, 1> euler = RotMtoEuler(R);
+            //     PointTypePose pose_next;
+            //     pose_next.x = msg_imu_pose.pose.position.x;
+            //     pose_next.y = msg_imu_pose.pose.position.y;
+            //     pose_next.z = msg_imu_pose.pose.position.z;
+            //     pose_next.roll = euler(0, 0);
+            //     pose_next.pitch = euler(1, 0);
+            //     pose_next.yaw = euler(2, 0);
+
+            //     SSC ssc_next(feats_undistort, 0);
+            //     remover.cluster(ssc_next.apri_vec, ssc_next.hash_cloud, ssc_next.cluster_vox);
+            //     remover.recognizePD(ssc_next);
+
+            //     Eigen::Vector4d q_copy(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w);
+            //     Eigen::Matrix3d R_copy = quaternionToRotation(quaternionNormalize(q_copy));
+            //     Eigen::Matrix<double, 3, 1> euler_copy = RotMtoEuler(R_copy);
+            //     PointTypePose pose_pre;
+            //     pose_pre.x = pos_lid_copy(0);
+            //     pose_pre.y = pos_lid_copy(1);
+            //     pose_pre.z = pos_lid_copy(2);
+            //     pose_pre.roll = euler_copy(0, 0);
+            //     pose_pre.pitch = euler_copy(1, 0);
+            //     pose_pre.yaw = euler_copy(2, 0);
+
+            //     SSC ssc_pre(feats_undistort_copy, 0);
+            //     remover.cluster(ssc_pre.apri_vec, ssc_pre.hash_cloud, ssc_pre.cluster_vox);
+            //     remover.recognizePD(ssc_pre);
+
+            //     remover.trackPD(ssc_pre, pose_pre, ssc_next, pose_next);
+            // }
+
+            feats_undistort_copy->points.clear();
+            *feats_undistort_copy += *feats_undistort;
 
             // 如果去畸变点云数据为空,则代表了激光雷达没有完成去畸变,此时还不能初始化成功
             if (feats_undistort->empty() || (feats_undistort == NULL))
@@ -2331,6 +2372,7 @@ int main(int argc, char **argv)
             state_point = kf.get_x();
             euler_cur = SO3ToEuler(state_point.rot);
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I; // world系下L坐标
+            pos_lid_copy = pos_lid;
             geoQuat.x = state_point.rot.coeffs()[0];                                // world系下当前IMU的姿态四元数
             geoQuat.y = state_point.rot.coeffs()[1];
             geoQuat.z = state_point.rot.coeffs()[2];
@@ -2433,7 +2475,7 @@ int main(int argc, char **argv)
         pcl::PCDWriter pcd_writer;
         cout << "current scan saved to PCD/" << file_name << endl;
         pcl::VoxelGrid<PointType> downSizeFilterGlobalMapKeyFrames;   
-        downSizeFilterGlobalMapKeyFrames.setLeafSize(2.0, 2.0, 2.0); 
+        downSizeFilterGlobalMapKeyFrames.setLeafSize(0.2, 0.2, 0.2); 
         downSizeFilterGlobalMapKeyFrames.setInputCloud(pcl_wait_save);
         downSizeFilterGlobalMapKeyFrames.filter(*pcl_wait_save);
         pcl::io::savePCDFileASCII(all_points_dir, *pcl_wait_save);
