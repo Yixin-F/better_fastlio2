@@ -156,9 +156,9 @@ lio_y = []
 lio_z = []
 for it in lio_poses:
       x = it[3]
-      lio_x.append(x-0.5)
+      lio_x.append(x)
       y = it[7]
-      lio_y.append(y+0.5)
+      lio_y.append(y)
       z = it[11]
       lio_z.append(z)
 print(len(lio_y))
@@ -177,9 +177,9 @@ gtsam_y = []
 gtsam_z = []
 for it in gtsam_poses:
       x = it[3]
-      gtsam_x.append(x-0.1)
+      gtsam_x.append(x)
       y = it[7]
-      gtsam_y.append(y+0.4)
+      gtsam_y.append(y)
       z = it[11]
       gtsam_z.append(z)
 print(len(gtsam_x))
@@ -198,9 +198,9 @@ tgrs_y = []
 tgrs_z = []
 for it in tgrs_poses:
       x = it[3]
-      tgrs_x.append(x+0.5)
+      tgrs_x.append(x)
       y = it[7]
-      tgrs_y.append(y-0.8)
+      tgrs_y.append(y)
       z = it[11]
       tgrs_z.append(z)
 print(len(tgrs_x))
