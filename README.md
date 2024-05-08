@@ -10,7 +10,7 @@
 - Ubuntu 20.04 and ROS Noetic
 - PCL >= 1.8 (default for Ubuntu 18.04)
 - Eigen >= 3.3.4 (default for Ubuntu 18.04)
-- GTSAM >= 4.0.2(tested on 4.0.0-alpha2)
+- GTSAM >= 4.0.0(tested on 4.0.3)
 
 ## 3 Build
 
