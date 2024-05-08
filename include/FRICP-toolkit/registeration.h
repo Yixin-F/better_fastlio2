@@ -15,13 +15,13 @@ ofstream fout_time;
 class Registeration{
 public:
     Eigen::MatrixXd res_trans;
-    enum Method{ICP, AA_ICP, FICP, RICP, PPL, RPPL, SparseICP, SICPPPL} method=RICP;
+    enum Method{ICP, AA_ICP, FICP, RICP, FR_ICP, PPL, RPPL, SparseICP, SICPPPL} method=RICP;
     int dim = 3;
 
     Registeration(int mode_){
         std::cout << "Method :\n"
-                  << "0: ICP\n1: AA-ICP\n2: Our Fast ICP\n3: Our Robust ICP\n4: ICP Point-to-plane\n"
-                  << "5: Our Robust ICP point to plane\n6: Sparse ICP\n7: Sparse ICP point to plane\n" 
+                  << "0: ICP\n1: AA-ICP\n2: Our Fast ICP\n3: Our Robust ICP\n4: Our Fast and Robust ICP\n5: ICP Point-to-plane\n"
+                  << "6: Our Fast and Robust ICP point to plane\n7: Sparse ICP\n8: Sparse ICP point to plane\n" 
                   << "search radius(< 0.5) for difference detection"<< std::endl;
         method = Method(mode_);
         std::cout << ANSI_COLOR_GREEN << "register by Method " << mode_ << ANSI_COLOR_RESET << std::endl;
@@ -95,6 +95,14 @@ public:
                 break;
             }   
             case RICP:
+            {
+                pars.f = ICP::WELSCH;
+                pars.use_AA = false;
+                fricp.point_to_point(vertices_source, vertices_target, source_mean, target_mean, pars);
+                res_trans = pars.res_trans;
+                break;
+            }
+            case FR_ICP:
             {
                 pars.f = ICP::WELSCH;
                 pars.use_AA = true;

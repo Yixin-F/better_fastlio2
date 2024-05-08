@@ -66,6 +66,7 @@ public:
     std::unordered_map<int, std::vector<int>> cluster_vox;  // cluster name + voxel id
     std::vector<int> PD_cluster;   // PD cluster name
     std::vector<int> HD_cluster;   // HD cluster name
+    std::vector<int> AS_cluster;   // HD cluster name
 
     boost::shared_ptr<PatchWork<PointType>> PatchworkGroundSeg;   // patchwork
     pcl::PointCloud<PointType>::Ptr cloud_g; // ground

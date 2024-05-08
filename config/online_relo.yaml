@@ -5,9 +5,9 @@ relo:
     searchDis: 5.0
     searchNum: 3  # if the cloud is dense, please reset it to 1
     trustDis: 5.0
-    # 0: ICP 1: AA-ICP 2: Our Fast ICP 3: Our Robust ICP 4: ICP Point-to-plane
-    # 5: Our Robust ICP point to plane 6: Sparse ICP 7: Sparse ICP point to plane
-    regMode: 3 # (0~7), but methods 4, 5 and 7 need normal information
+    # 0: ICP 1: AA-ICP 2: Our Fast ICP 3: Our Robust ICP 4: ICP Point-to-plane 5: ICP Point-to-plane
+    # 6: Our Fast and Robust ICP point to plane 7: Sparse ICP 8: Sparse ICP point to plane
+    regMode: 3 # (0~8), but methods 4, 6 and 8 need normal information
 
     # extrinsic_T: [1.77, -0.00, -0.05] # lidar to imu # parkinglot
     # extrinsic_R: [ -1, 0, 0, 

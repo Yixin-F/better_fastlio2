@@ -869,7 +869,13 @@ void loopFindNearKeyframes(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const
             *nearKeyframes += *surfCloudKeyFrames[keyNear]; // cur点云本身保持不变
         }
         else{
-            *nearKeyframes += *getBodyCloud(surfCloudKeyFrames[keyNear], copy_cloudKeyPoses6D->points[key], copy_cloudKeyPoses6D->points[keyNear]); // TODO: fast-lio没有进行特征提取,默认点云就是surf
+            Eigen::Affine3f keyTrans = pcl::getTransformation(copy_cloudKeyPoses6D->points[key].x, copy_cloudKeyPoses6D->points[key].y, copy_cloudKeyPoses6D->points[key].z, copy_cloudKeyPoses6D->points[key].roll, copy_cloudKeyPoses6D->points[key].pitch, copy_cloudKeyPoses6D->points[key].yaw);
+            Eigen::Affine3f keyNearTrans = pcl::getTransformation(copy_cloudKeyPoses6D->points[keyNear].x, copy_cloudKeyPoses6D->points[keyNear].y, copy_cloudKeyPoses6D->points[keyNear].z, copy_cloudKeyPoses6D->points[keyNear].roll, copy_cloudKeyPoses6D->points[keyNear].pitch, copy_cloudKeyPoses6D->points[keyNear].yaw);
+            Eigen::Affine3f finalTrans = keyTrans.inverse() * keyNearTrans;
+            pcl::PointCloud<PointType>::Ptr tmp(new pcl::PointCloud<PointType>());
+            transformPointCloud(surfCloudKeyFrames[keyNear], finalTrans, tmp);
+            *nearKeyframes += *tmp;
+            // *nearKeyframes += *getBodyCloud(surfCloudKeyFrames[keyNear], copy_cloudKeyPoses6D->points[key], copy_cloudKeyPoses6D->points[keyNear]); // TODO: fast-lio没有进行特征提取,默认点云就是surf
         }
     }
     if (nearKeyframes->empty())
@@ -2259,6 +2265,9 @@ int main(int argc, char **argv)
             msg_imu_pose.pose.orientation.z = state_point.rot.coeffs()[2];
             msg_imu_pose.pose.orientation.w = state_point.rot.coeffs()[3];
 
+            feats_undistort_copy->points.clear();
+            *feats_undistort_copy += *feats_undistort;
+
             // // TODO: add dynamic remove here
             // if(feats_undistort_copy->points.size() > 0){
             //     Eigen::Vector4d q(msg_imu_pose.pose.orientation.x, msg_imu_pose.pose.orientation.y, msg_imu_pose.pose.orientation.z, msg_imu_pose.pose.orientation.w);
@@ -2292,10 +2301,10 @@ int main(int argc, char **argv)
             //     remover.recognizePD(ssc_pre);
 
             //     remover.trackPD(ssc_pre, pose_pre, ssc_next, pose_next);
-            // }
 
-            feats_undistort_copy->points.clear();
-            *feats_undistort_copy += *feats_undistort;
+            //     feats_undistort->points.clear();
+            //     *feats_undistort += *ssc_next.cloud_nd;
+            // }
 
             // 如果去畸变点云数据为空,则代表了激光雷达没有完成去畸变,此时还不能初始化成功
             if (feats_undistort->empty() || (feats_undistort == NULL))

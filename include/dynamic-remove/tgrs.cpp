@@ -195,7 +195,18 @@ void TGRS::trackPD(SSC& ssc_pre, PointTypePose* pose_pre, SSC& ssc_next, PointTy
         if(overlapRatio <= HD_RATIO){
             ssc_next.HD_cluster.emplace_back(pd);  // PD to HD
         }
+        else{
+            ssc_next.AS_cluster.emplace_back(pd);  // PD to AS
+        }
     }
+    
+    std::vector<int> AS_ptIdx;
+    for(auto& as : ssc_next.AS_cluster){
+        addVec(AS_ptIdx, ssc_next.hash_cloud[as].ptIdx);
+    }
+    *ssc_next.cloud_nd += *getCloudByVec(AS_ptIdx, ssc_next.cloud_use);
+    *ssc_next.cloud_nd += *ssc_next.cloud_g;
+
     std::cout << ANSI_COLOR_GREEN << " PD num: " << ssc_next.PD_cluster.size() << "\n"
               << ANSI_COLOR_RED << " HD num: " << ssc_next.HD_cluster.size() << ANSI_COLOR_RESET << std::endl;
 }
