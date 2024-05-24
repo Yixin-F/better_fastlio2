@@ -27,11 +27,6 @@ catkin_make
 source ./devel/setup.bash
 roslaunch fast_lio_sam mapping_*.launch
 ```
-<!-- <p align='center'>
-    <img src="/pic/1.png" alt="drawing" width="400" height ="200"/>
-    <img src="/pic/2.png" alt="drawing" width="400" height =200/>
-</p> -->
-
 
 ### 4.2 Multi-session Mapping
 ```shell
@@ -51,8 +46,10 @@ source ./devel/setup.bash
 roslaunch fast_lio_sam online_relocalization.launch
 ```
 
-## 5 More
-### 5.1 Utilize the iVox to achieve more efficient dynamic removal
-### 5.2 Develop a Multi-agent Exploration system
-### 5.3 Improve the STD or Scan Context ++ to replace the Scan Context
+## 5 Reference
+### Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
+### PGO: https://github.com/gisbi-kim/FAST_LIO_SLAM
+### TGRS: https://github.com/Yixin-F/DR-Using-SCV-OD
+### Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
+
 
