@@ -69,7 +69,7 @@ You need to first check the Config/*.yaml about the settings for different LiDAR
 | keyframeAddingAngleThreshold | 关键帧旋转阈值(rad) | 0.2 |
 | extrinsic_T | 雷达到IMU平移外参 | - |
 | extrinsic_R | 雷达到IMU旋转外参 | - |
-| max_iteration | ESKF最大迭代次数 | 3 |
+| max_iteration | ESEKF最大迭代次数 | 3 |
 | recontructKdTree | 是否重建i-kdtree | false |
 | kd_step | i-kdtree重建步长 | 50 |
 | filter_size_map_min | i-kdtree下采样分辨率(m) | 0.2 |
@@ -207,3 +207,96 @@ The data structure in "priorDir" is similar to the result of lio mapping. Please
 - Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
 
 
+## 6 File Tree
+```
+.
+├── build
+│   ├── atomic_configure
+│   ├── catkin
+│   ├── catkin_generated
+│   ├── CATKIN_IGNORE
+│   ├── CMakeCache.txt
+│   ├── CMakeFiles
+│   ├── CTestConfiguration.ini
+│   ├── CTestCustom.cmake
+│   ├── devel
+│   └── teaser-prefix
+├── CMakeLists.txt  // bulid settings
+├── config
+│   ├── hap_livox.yaml
+│   ├── hap_ros.yaml
+│   ├── kitti.yaml
+│   ├── mulran.yaml
+│   ├── multi_session.yaml
+│   ├── nclt.yaml
+│   ├── online_relo.yaml
+│   ├── velodyne16.yaml
+│   └── velodyne64_kitti_dataset.yaml
+├── include
+│   ├── analysis  // test *.py
+│   ├── common_lib.h
+│   ├── dynamic-remove  // dynamic removal head
+│   ├── FRICP-toolkit  // robust and fast ICP head
+│   ├── ikd-Tree  // i-kdtree
+│   ├── IKFoM_toolkit
+│   ├── kitti2bag  // kitti to bag 
+│   ├── math_tools.h  // math functions
+│   ├── matplotlibcpp.h  // matplotlib
+│   ├── multi-session  // multi-session head
+│   ├── mutexDeque.h  // mutex tool
+│   ├── nanoflann.hpp  // nanoflann
+│   ├── online-relo  // online relocalization head
+│   ├── sc-relo  // scan context head
+│   ├── sophus
+│   ├── teaser-toolkit  // teaser head
+│   ├── tictoc.hpp  // tictoc
+│   ├── tool_color_printf.h  // colerful print
+│   └── use-ikfom.hpp
+├── launch
+│   ├── mapping_hap_livox.launch  // livox mapping
+│   ├── mapping_hap_ros.launch
+│   ├── mapping_mulran.launch  // mulran mapping
+│   ├── mapping_velodyne16.launch  // velodyne mapping
+│   ├── mapping_velodyne64_kitti_dataset.launch  // kitti mapping
+│   ├── multi_session.launch  // multi-session
+│   ├── object_update.launch  // object-level updating
+│   └── online_relo.launch  // online relocalization
+├── LICENSE
+├── Log
+│   ├── fast_lio_time_log_analysis.m  // time analysis
+│   ├── guide.md
+│   ├── imu.txt  // imu poses output
+│   └── plot.py  // plot using matplotlib
+├── msg
+│   ├── cloud_info.msg  // cloud msg
+│   └── Pose6D.msg  // pose msg
+├── note.txt  // development note
+├── package.xml
+├── pic
+│   ├── color.png
+│   ├── lio_file.png
+│   ├── multi_session_details.png
+│   ├── multi-session.png
+│   ├── update_details.png
+│   ├── update.png
+│   └── yolo.png
+├── README.md
+├── rviz_cfg
+│   ├── fastlio_hk.rviz
+│   ├── loam_livox.rviz
+│   ├── loc_new.rviz
+│   ├── loc.rviz
+│   └── sc_relo.rviz
+├── src
+│   ├── IMU_Processing.hpp  // imu process -main
+│   ├── laserMapping.cpp  // esekf mapping -main
+│   ├── multi_session.cpp  // multi-session -main
+│   ├── object_update.cpp  // object-level updating -main
+│   ├── online_relocalization.cpp  // online relocalization -main
+│   ├── preprocess.cpp  // lidar process -main
+│   └── preprocess.h
+└── srv
+    ├── save_map.srv  // service to save map
+    └── save_pose.srv  // service to save poses
+
+```
