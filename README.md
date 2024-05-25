@@ -200,14 +200,7 @@ You also need to first check the Config/online_relocalization.yaml, we list para
 
 The data structure in "priorDir" is similar to the result of lio mapping. Please do not open i-kdtree recontruction, loop closure detection or dynamic removal during online relocalization. You can set the manual pose in rviz by button "2D Pose Estimation".
 
-## 5 References
-- Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
-- PGO(GPS): https://github.com/gisbi-kim/FAST_LIO_SLAM
-- TGRS: https://github.com/Yixin-F/DR-Using-SCV-OD
-- Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
-
-
-## 6 File Tree
+## 5 File Tree
 ```
 .
 ├── build
@@ -298,5 +291,10 @@ The data structure in "priorDir" is similar to the result of lio mapping. Please
 └── srv
     ├── save_map.srv  // service to save map
     └── save_pose.srv  // service to save poses
-
 ```
+
+## 6 References
+- Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
+- PGO(GPS): https://github.com/gisbi-kim/FAST_LIO_SLAM
+- TGRS: https://github.com/Yixin-F/DR-Using-SCV-OD
+- Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
