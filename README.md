@@ -165,7 +165,7 @@ Note that we just update the local map in similar area, so if you wanna test obj
 
 <img src="./pic/update.png" alt="Files generated after running object-level updating" width="350">
 
-The upper part means that we choose the 0~50 frames with skip as 5 in 01 to update the 0~30 frames with skip as 3 in 02. Remember that you can change the skip by rewritting the "i" in for-loop. We finally get the updated map of 01.
+The upper part means that we choose the 0-50 frames with skip as 5 in 01 to update the 0-30 frames with skip as 3 in 02. Remember that you can change the skip by rewritting the "i" in for-loop. We finally get the updated map of 01.
 
 <img src="./pic/update_details.png" alt="Files generated after running object-level updating" width="400">
 
