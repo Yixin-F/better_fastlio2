@@ -1,3 +1,5 @@
+// multi-session writted by @Yixin Fang, refering LT-Mapper
+
 #pragma once
 
 #include "../common_lib.h"

@@ -1,3 +1,5 @@
+// Scan Context accepted by IROS, but it has been rewritten by @Yixin Fang
+
 #pragma once
 
 #include <ctime>

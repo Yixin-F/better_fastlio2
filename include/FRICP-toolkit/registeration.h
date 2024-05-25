@@ -1,3 +1,5 @@
+// head for registeration writted by @Yixin Fang
+
 #pragma once
 
 #include <iostream>
@@ -18,6 +20,7 @@ public:
     enum Method{ICP, AA_ICP, FICP, RICP, FR_ICP, PPL, RPPL, SparseICP, SICPPPL} method=RICP;
     int dim = 3;
 
+    // please see here for mode details
     Registeration(int mode_){
         std::cout << "Method :\n"
                   << "0: ICP\n1: AA-ICP\n2: Our Fast ICP\n3: Our Robust ICP\n4: Our Fast and Robust ICP\n5: ICP Point-to-plane\n"

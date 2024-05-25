@@ -1,3 +1,5 @@
+// Teaser accepted by CVPR, it has been rewritten by @Yixin Fang
+
 #pragma once
 
 #include <ros/ros.h>

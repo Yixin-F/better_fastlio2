@@ -1,3 +1,5 @@
+// paper accepted by TGRS @Yixin Fang, but it's just simple version ...
+
 #pragma once
 
 #include "common_lib.h"
@@ -111,6 +113,7 @@ public:
                                         << " time cost(ms): " << time_pw << std::endl;
     }
 
+    // make apri vector
     void makeApriVec(const pcl::PointCloud<PointType>::Ptr& cloud_){
         for(size_t i = 0; i < cloud_->points.size(); i++){
             PointType pt = cloud_->points[i];
@@ -149,6 +152,7 @@ public:
         std::cout << "apri vec size: " << apri_vec.size() << " py use num: " << cloud_use->points.size() << std::endl;
     }
 
+    // make hash table for voxels
     void makeHashCloud(const std::vector<PointAPRI>& apriIn_){
         std::unordered_map<int, Voxel>::iterator it_find;
         int count = 0;

@@ -1,3 +1,5 @@
+// math tool
+
 #ifndef SO3_MATH_H
 #define SO3_MATH_H
 
