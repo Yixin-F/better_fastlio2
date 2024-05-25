@@ -30,7 +30,8 @@ source ./devel/setup.bash
 roslaunch fast_lio_sam mapping_*.launch
 ```
 You need to first check the Config/*.yaml about the settings for different LiDAR types, we list parameters here. "-" means that it depends on your own project.
-| name | 中文解释 | default(默认值) |
+
+| Parameters | 中文解释 | default(默认值) |
 | --- | --- | --- |
 | lid_topic | 雷达话题名称 | - |
 | imu_topic | IMU话题名称 | - |
@@ -95,8 +96,18 @@ You need to first check the Config/*.yaml about the settings for different LiDAR
 
 After you have run the command, there are several files being generated in the filefold "rootDir/*" as follows:
 
-<img src="./pic/lio_file.png" alt="Files generated after running our LIO" width="800">
+<img src="./pic/lio_file.png" alt="Files generated after running LIO" width="600">
 
+| File Name | 中文解释 |
+| --- | --- |
+| LOG | 日志文件 |
+| PCDs | PCD格式 关键帧点云 |
+| SCDs | SCD格式 关键帧Scan Context描述子 |
+| globalMap.pcd | PCD格式 全局地图 |
+| singlesession_posegraph.g2o | g2o格式 全局位姿图 |
+| trajectory.pcd | PCD格式 xyz位姿轨迹|
+| transformations.pcd | PCD格式 xyz+rpy位姿轨迹 |
+|  |  |
 
 ### 4.2 Multi-session Mapping
 ```shell
@@ -104,17 +115,90 @@ source ./devel/setup.bash
 roslaunch fast_lio_sam multi_session.launch
 ```
 
+You also need to first check the Config/multi_session.yaml, we list parameters here. "-" means that it depends on your own project.
+
+| Parameters | 中文解释 | default(默认值) |
+| --- | --- | --- |
+| sessions_dir | 存储多个lio结果的根路径 | - |
+| central_sess_name | 中心阶段lio文件名称 | - |
+| query_sess_name | 子阶段lio文件名称 | - |
+| save_directory | 多阶段结果保存路径 | - |
+| iteration | isam2迭代优化次数 | 3 |
+|  |  |  |
+
+If you wanna run this multi-session module, you should have two-stage results from the LIO mapping module, more details can be found in the last section. We give examples on Parkinglot Dataset here.
+
+<img src="./pic/multi-session.png" alt="Files generated after running multi-session" width="800">
+
+| File Name | 中文解释 |
+| --- | --- |
+| 01 ~ 02 | 01 ~ 02 的单阶段 lio mapping 结果，文件格式同 4.1 |
+| 01** | ** 对 01 的 multi-session 结果 |
+|  |  |
+
+We show the details in file "0102" as follows:
+
+<img src="./pic/multi_session_details.png" alt="Files generated after running multi-session" width="800">
+
+| File Name | 中文解释 |
+| --- | --- |
+| 01_central_aft_intersession_loops.txt | TXT格式 multi-session后 中心坐标系下01位姿轨迹 |
+| 01_central_bfr_intersession_loops.txt | TXT格式 multi-session前 中心坐标系下01位姿轨迹 |
+| 01_local_aft_intersession_loops.txt | TXT格式 multi-session后 子坐标系下01位姿轨迹  |
+| 01_local_bfr_intersession_loops.txt | TXT格式 multi-session前 子坐标系下01位姿轨迹  |
+| 02_central_aft_intersession_loops.txt | TXT格式 multi-session后 中心坐标系下02位姿轨迹 |
+| 02_central_bfr_intersession_loops.txt | TXT格式 multi-session前 中心坐标系下02位姿轨迹 |
+| 02_local_aft_intersession_loops.txt | TXT格式 multi-session后 子坐标系下02位姿轨迹 |
+| 02_local_bfr_intersession_loops.txt | TXT格式 multi-session前 子坐标系下02位姿轨迹 |
+| aft_map2.pcd | PCD格式  multi-session后 中心坐标系下0102拼接地图|
+| aft_transformation1.pcd | PCD格式  multi-session后 中心坐标系下01地图 |
+| aft_transformation2.pcd | PCD格式  multi-session后 中心坐标系下02地图 |
+|  |  |
+
 ### 4.3 Object-level Updating
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam object_update.launch
 ```
 
+Note that we just update the local map in similar area, so if you wanna test object-level updating, you should manually select these areas like that we show you in src/object_update.cpp line 235~321.
+
+<img src="./pic/update.png" alt="Files generated after running object-level updating" width="350">
+
+The upper part means that we choose the 0~50 frames with skip as 5 in 01 to update the 0~30 frames with skip as 3 in 02. Remember that you can change the skip by rewritting the "i" in for-loop. We finally get the updated map of 01.
+
+<img src="./pic/update_details.png" alt="Files generated after running object-level updating" width="400">
+
+| File Name | 中文解释 |
+| --- | --- |
+| prior_map_select.pcd | PCD格式 先验被更新地图的区域 |
+| cur_map_select.pcd | PCD格式 当前更新地图的区域 |
+| result.pcd | PCD格式 更新地图结果 |
+|  |  |
+
 ### 4.4 Online Relocalization
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam online_relocalization.launch
+roslaunch fast_lio_sam mapping_*.launch
+rosbag play -r * *.bag
 ```
+You also need to first check the Config/online_relocalization.yaml, we list parameters here. "-" means that it depends on your own project.
+
+| Parameters | 中文解释 | default(默认值) |
+| --- | --- | --- |
+| priorDir | 先验知识根路径 | - |
+| cloudTopic | lio点云发布话题 | - |
+| poseTopic | lio位姿发布话题 | - |
+| searchDis | 近邻先验关键帧搜索半径(m) | 5.0 |
+| searchNum | 近邻先验关键帧搜索个数 | 3 |
+| trustDis | 区域覆盖搜索半径(m) | 5.0 |
+| regMode | 配准方法 | 4 |
+| extrinsic_T | 雷达到IMU平移外参 | - |
+| extrinsic_R | 雷达到IMU旋转外参 | - |
+|  |  |  |
+
+The data structure in "priorDir" is similar to the result of lio mapping. Please do not open i-kdtree recontruction, loop closure detection or dynamic removal during online relocalization. You can set the mannual pose in rviz by button "2D Pose Estimation".
 
 ## 5 References
 - Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
