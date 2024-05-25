@@ -198,7 +198,7 @@ You also need to first check the Config/online_relocalization.yaml, we list para
 | extrinsic_R | 雷达到IMU旋转外参 | - |
 |  |  |  |
 
-The data structure in "priorDir" is similar to the result of lio mapping. Please do not open i-kdtree recontruction, loop closure detection or dynamic removal during online relocalization. You can set the mannual pose in rviz by button "2D Pose Estimation".
+The data structure in "priorDir" is similar to the result of lio mapping. Please do not open i-kdtree recontruction, loop closure detection or dynamic removal during online relocalization. You can set the manual pose in rviz by button "2D Pose Estimation".
 
 ## 5 References
 - Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
