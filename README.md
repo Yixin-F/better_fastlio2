@@ -212,6 +212,8 @@ After you have run the command, there are several files being generated in the f
 We show some simple results:
 
 <img src="./pic/6-4.png" alt="Files generated after running LIO" width="600">
+<img src="./pic/6-8.png" alt="Files generated after running LIO" width="600">
+<img src="./pic/6-14.png" alt="Files generated after running LIO" width="600">
 
 ### 4.2 Multi-session Mapping
 ```shell
@@ -298,6 +300,11 @@ We show the details in file "0102" as follows:
 | aft_transformation2.pcd | PCD格式  multi-session后 中心坐标系下02地图 |
 |  |  |
 
+We show some simple results:
+
+<img src="./pic/6-18.png" alt="Files generated after running LIO" width="600">
+<img src="./pic/6-21.png" alt="Files generated after running LIO" width="600">
+
 ### 4.3 Object-level Updating
 ```shell
 source ./devel/setup.bash
@@ -366,6 +373,12 @@ The data structure in "priorDir" is similar to the result of lio mapping. Please
 | [Registeration](./include/FRICP-toolkit/registeration.h#L24) | [配准类构造函数]() |
 | [run](./include/FRICP-toolkit/registeration.h#L36) | [配准主函数]() |
 |  |  |
+
+We show some simple results:
+
+<img src="./pic/6-24.png" alt="Files generated after running LIO" width="600">
+<img src="./pic/6-28.png" alt="Files generated after running LIO" width="600">
+<img src="./pic/6-25.png" alt="Files generated after running LIO" width="600">
 
 ## 5 File Tree
 ```
