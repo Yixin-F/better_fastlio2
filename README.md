@@ -94,6 +94,19 @@ You need to first check the Config/*.yaml about the settings for different LiDAR
 | visulize_IkdtreeMap | 是否发布i-kdtree | true |
 |  |  |  |
 
+Here we list some important functions as follows:
+
+| Function Name | 中文解释 |
+| --- | --- |
+| [imageCallback](./src/laserMapping.cpp#L250) | usb图像回调函数 720x1280 |
+| paramSetting | usb相机内参与外参设置 |
+| BoxCallback | yolo目标检测包络框 |
+| publish_frame_world_color | 彩色点云发布 |
+| updatePath | 更新里程计轨迹 |
+| constraintTransformation | 位姿变换限制 |
+| getCurPose | 获得当前位姿 |
+|  |  |
+
 After you have run the command, there are several files being generated in the filefold "rootDir/*" as follows:
 
 <img src="./pic/lio_file.png" alt="Files generated after running LIO" width="600">
@@ -105,7 +118,7 @@ After you have run the command, there are several files being generated in the f
 | SCDs | SCD格式 关键帧Scan Context描述子 |
 | globalMap.pcd | PCD格式 全局地图 |
 | singlesession_posegraph.g2o | g2o格式 全局位姿图 |
-| trajectory.pcd | PCD格式 xyz位姿轨迹|
+| trajectory.pcd | PCD格式 xyz位姿轨迹 |
 | transformations.pcd | PCD格式 xyz+rpy位姿轨迹 |
 |  |  |
 
