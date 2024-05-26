@@ -209,6 +209,10 @@ After you have run the command, there are several files being generated in the f
 | transformations.pcd | PCD格式 xyz+rpy位姿轨迹 |
 |  |  |
 
+We show some simple results:
+
+<img src="./pic/6-4.png" alt="Files generated after running LIO" width="600">
+
 ### 4.2 Multi-session Mapping
 ```shell
 source ./devel/setup.bash
