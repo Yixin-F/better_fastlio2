@@ -18,7 +18,7 @@
 
 ```shell
 cd YOUR_WORKSPACE/src
-git clone https://github.com/Yixin-F/yolo_dr_sc_fastlio2.git
+git clone https://github.com/Yixin-F/better_fastlio2
 cd ..
 catkin_make
 ```
