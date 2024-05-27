@@ -263,7 +263,7 @@ Here we list some important functions in include/multi-session/incremental_mappi
 | [calcInformationGainBtnTwoNodes](./include/multi-session/Incremental_mapping.cpp#L699) | [重定位优化残差主函数]() |
 | [findNearestRSLoopsTargetNodeIdx](./include/multi-session/Incremental_mapping.cpp#L729) | rs重定位std::pair保存 |
 | [addRSloops](./include/multi-session/Incremental_mapping.cpp#L787) | [rs重定位因子添加主函数]() |
-| [addSClinitTrajectoryByAnchoringoops](./include/multi-session/Incremental_mapping.cpp#L840) | [anchor出是哈u主函数]() |
+| [addSClinitTrajectoryByAnchoringoops](./include/multi-session/Incremental_mapping.cpp#L840) | [anchor生成主函数]() |
 | [addSessionToCentralGraph](./include/multi-session/Incremental_mapping.cpp#L853) | 添加节点 |
 | [loadAllSessions](./include/multi-session/Incremental_mapping.cpp#L894) | 加载文件名称 |
 | [visualizeLoopClosure](./include/multi-session/Incremental_mapping.cpp#L928) | 可视化重定位因子边 |
