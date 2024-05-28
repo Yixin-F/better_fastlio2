@@ -235,7 +235,7 @@ Forthly, detect dynamic points during LiDAR points insertation.
 ### 4.2 Multi-session Mapping
 In this section, we developed a multi-session mapping module using joint and anchor-based pose-graph optimization, which aims to reduce the cost of repeated mapping and detect differences between them. Seeing the following figure for more details.
 
-<img src="./pic/4-3.png" alt="Files generated after running LIO" width="700">
+<img src="./pic/4-3.png" alt="Files generated after running LIO" width="650">
 
 You can run it by these commands.
 ```shell
