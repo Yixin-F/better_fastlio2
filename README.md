@@ -420,7 +420,7 @@ We show some simple results:
 <img src="./pic/6-28.png" alt="Files generated after running LIO" width="600">
 <img src="./pic/6-25.png" alt="Files generated after running LIO" width="600">
 
-How to improve it? Nothing, actully it's meaningless.
+How to improve it? Nothing, actually it's meaningless.
 
 ## 5 File Tree
 ```
