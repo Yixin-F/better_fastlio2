@@ -26,7 +26,9 @@ catkin_make
 ## 4 How to Use
 ### 4.1 LIO Mapping using Livox, Velodyne, Ouster or Robosense
 
-In this section, we developed a more comprehensive FAST-LIO2 version including dynamic removal using SCV-OD (accepted by T-GRS) and YOLO(optional), optimization backend using Scan Context, GPS(optional) and GTSAM. At the same time, we rewritted the mechanism of i-kdtree reconstruction to be suitable for low-power embedded devices.
+In this section, we developed a more comprehensive [FAST-LIO2](https://github.com/hku-mars/FAST_LIO) version including dynamic removal using SCV-OD (accepted by T-GRS) and YOLO(optional), optimization backend using Scan Context, GPS(optional) and GTSAM. At the same time, we rewritted the mechanism of i-kdtree reconstruction to be suitable for low-power embedded devices. The basic framework is illustrated in the following figure.
+
+<img src="./pic/3-1.png" alt="Files generated after running LIO" width="800">
 
 You can run it by the following commands.
 ```shell
@@ -98,7 +100,9 @@ For other application, you need to first check the Config/*.yaml about the setti
 | visulize_IkdtreeMap | 是否发布i-kdtree | true |
 |  |  |  |
 
-Note that if you wanna use the dynamic removal module, you have to make the "src/laserMapping.cpp [line 2271-2307](./src/laserMapping.cpp#L2271)" effect.
+Note that if you wanna use the dynamic removal module, you have to make the "src/laserMapping.cpp [line 2271-2307](./src/laserMapping.cpp#L2271)" effect. But differnet from the origianl dynamic removal method in T-GRS paper, we utilized the voxel center to align consecutive keyframes, which improves the real-time performance but also sacrifices some precision. So, we do not recommend using the Velodyne VLP16 for testing because its scan point cloud is too sparse. This dynamic removal module can be showed by the following figure.
+
+<img src="./pic/3-13.png" alt="Files generated after running LIO" width="800">
 
 1) Here we list some important functions in src/laserMapping.cpp as follows:
 
@@ -219,7 +223,21 @@ We show some simple results:
 <img src="./pic/6-8.png" alt="Files generated after running LIO" width="600">
 <img src="./pic/6-14.png" alt="Files generated after running LIO" width="600">
 
+Now, we give some suggestion to improve this special LIO framework:
+Firstly, change the point-cloud map management mechanism. You can use the sparse method like hash table similar to [Faster-LIO](https://github.com/gaoxiang12/faster-lio).
+
+Secondly, improve the residual calculation method. The point-to-plane registrition during LiDAR measurement, which utilizes generalized patches instead of actual planes may lead to inconsistencies in registration. You can use true planes modeling by uncertainty.
+
+Thirdly, find a better loop closure descriptor, such as [STD](https://github.com/hku-mars/STD), [G3Reg](https://github.com/HKUST-Aerial-Robotics/G3Reg).
+
+Fourthly, detect dynamic points during LiDAR points insertation.
+
 ### 4.2 Multi-session Mapping
+In this section, we developed a multi-session mapping module using joint and anchor-based pose-graph optimization, which aims to reduce the cost of repeated mapping and detect differences between them. Seeing the following figure for more details.
+
+<img src="./pic/4-3.png" alt="Files generated after running LIO" width="700">
+
+You can run it by these commands.
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam multi_session.launch
@@ -309,7 +327,18 @@ We show some simple results:
 <img src="./pic/6-18.png" alt="Files generated after running LIO" width="600">
 <img src="./pic/6-21.png" alt="Files generated after running LIO" width="600">
 
+Here, we also give some suggestion to improve it:
+
+Firstly, do not update the isam2 optimizer immediately upon receiving a relocalization message, because this will cost more memory and time. You can develop some mechanism to select more important relocalization anchor.
+
+Secondly, transfer this offline multi-session code into online mode to adapt to multi-agent exploration like [m-tare](https://github.com/caochao39/mtare_planner).
+
 ### 4.3 Object-level Updating
+In this section, we developed a object-level updating module to solve the ineffective machanism of point-level method. The difference detection during this updating is similar to the dynamic detection in the period of dynamic removal. As shown by following figure.
+
+<img src="./pic/4-6.png" alt="Files generated after running LIO" width="700">
+
+You can run it by
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam object_update.launch
@@ -330,7 +359,14 @@ The upper part means that we choose the 0-50 frames with skip as 5 in 01 to upda
 | result.pcd | PCD格式 更新地图结果 |
 |  |  |
 
-### 4.4 Online Relocalization
+As for how to improve it, I do not know. Maybe you can integrate it into LIO revisiting or online relocalization.
+
+### 4.4 Online Relocalization and Incremental Mapping
+In this section, we developed a online relocalization and incremental mapping module, which aims to utilize the prior map during navigation and exploration. More details referred to the following figure.
+
+<img src="./pic/5-1.png" alt="Files generated after running LIO" width="800">
+
+Yeah, run it by
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam online_relocalization.launch
@@ -383,6 +419,8 @@ We show some simple results:
 <img src="./pic/6-24.png" alt="Files generated after running LIO" width="600">
 <img src="./pic/6-28.png" alt="Files generated after running LIO" width="600">
 <img src="./pic/6-25.png" alt="Files generated after running LIO" width="600">
+
+How to improve it? Nothing, actully it's meaningless.
 
 ## 5 File Tree
 ```
