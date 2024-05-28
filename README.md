@@ -1,4 +1,4 @@
-## FAST_LIO_SAM with Dynamic Removal, Multi-session mapping and Online Relocalization, developed by Yixin-F, SEU
+## To be a better FAST-LIO2
 
 ## 0 Introdunction
 - Front_end: fastlio2 + SC + GPS(Optional) + Dynamic Removal + Yolo(Optional)
