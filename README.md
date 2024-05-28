@@ -230,7 +230,7 @@ Secondly, improve the residual calculation method. The point-to-plane registriti
 
 Thirdly, find a better loop closure descriptor, such as [STD](https://github.com/hku-mars/STD), [G3Reg](https://github.com/HKUST-Aerial-Robotics/G3Reg).
 
-Fourthly, detect dynamic points during LiDAR points insertation.
+Forthly, detect dynamic points during LiDAR points insertation.
 
 ### 4.2 Multi-session Mapping
 In this section, we developed a multi-session mapping module using joint and anchor-based pose-graph optimization, which aims to reduce the cost of repeated mapping and detect differences between them. Seeing the following figure for more details.
