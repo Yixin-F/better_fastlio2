@@ -11,8 +11,8 @@
 - PCL >= 1.10 (default for Ubuntu 20.04)
 - Eigen >= 3.3.4 (default for Ubuntu 20.04)
 - GTSAM >= 4.0.3 (test on 4.2(a))
-- Livox Driver
-- Darknet-ros
+- [Livox_ros_driver](https://github.com/Livox-SDK/livox_ros_driver)
+- [Darknet_ros](https://github.com/leggedrobotics/darknet_ros)
 
 ## 3 Build
 
@@ -25,11 +25,15 @@ catkin_make
 
 ## 4 How to Use
 ### 4.1 LIO Mapping using Livox, Velodyne, Ouster or Robosense
+
+In this section, we developed a more comprehensive FAST-LIO2 version including dynamic removal using SCV-OD (accepted by T-GRS) and YOLO(optional), optimization backend using Scan Context, GPS(optional) and GTSAM. At the same time, we rewritted the mechanism of i-kdtree reconstruction to be suitable for low-power embedded devices.
+
+You can run it by the following commands.
 ```shell
 source ./devel/setup.bash
 roslaunch fast_lio_sam mapping_*.launch
 ```
-You need to first check the Config/*.yaml about the settings for different LiDAR types, we list parameters here. "-" means that it depends on your own project.
+For other application, you need to first check the Config/*.yaml about the settings for different LiDAR types, we list parameters here. "-" means that it depends on your own project.
 
 | Parameters | 中文解释 | default(默认值) |
 | --- | --- | --- |
@@ -477,5 +481,5 @@ We show some simple results:
 - Baseline: https://github.com/JS-622/YOLO-fast-lio-sam
 - PGO(GPS): https://github.com/gisbi-kim/FAST_LIO_SLAM
 - FR-ICP：https://github.com/yaoyx689/Fast-Robust-ICP
-- TGRS: https://github.com/Yixin-F/DR-Using-SCV-OD
+- T-GRS: https://github.com/Yixin-F/DR-Using-SCV-OD
 - Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
