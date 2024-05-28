@@ -1,9 +1,9 @@
 ## To be a better FAST-LIO2
 
 ## 0 Introdunction
-- Front_end: fastlio2 + SC + GPS(Optional) + Dynamic Removal + Yolo(Optional)
-- Back_end: GTSAM
-- Application: Joint Pose-graph Optimization using iSAM2, Fast and Robust ICP
+- Front_end: fastlio2 + Dynamic Removal + Yolo(Optional)
+- Back_end: Scan Context + GPS(Optional) + GTSAM
+- Application: Joint Pose-graph Optimization using iSAM2, Fast and Robust ICP relocalization
 
 ## 1 Prerequisites
 
