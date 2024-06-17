@@ -359,6 +359,10 @@ The upper part means that we choose the 0-50 frames with skip as 5 in 01 to upda
 | result.pcd | PCD格式 更新地图结果 |
 |  |  |
 
+The following is the expremental results:
+
+<img src="./pic/update_ex.png" alt="Files generated after running object-level updating" width="700">
+
 As for how to improve it, I do not know. Maybe you can integrate it into LIO revisiting or online relocalization.
 
 ### 4.4 Online Relocalization and Incremental Mapping
