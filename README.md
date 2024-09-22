@@ -525,3 +525,16 @@ How to improve it? Nothing, actually it's meaningless.
 - FR-ICP：https://github.com/yaoyx689/Fast-Robust-ICP
 - T-GRS: https://github.com/Yixin-F/DR-Using-SCV-OD
 - Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
+
+## citation 
+If you use any code in this project, please cite
+
+```bibtex
+@article{fang2024segmented,
+  title={Segmented Curved-Voxel Occupancy Descriptor for Dynamic-Aware LiDAR Odometry and Mapping},
+  author={Fang, Yixin and Qian, Kun and Zhang, Yun and Shi, Tong and Yu, Hai},
+  journal={IEEE Transactions on Geoscience and Remote Sensing},
+  year={2024},
+  publisher={IEEE}
+}
+```
