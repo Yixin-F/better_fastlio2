@@ -6,6 +6,7 @@
 - Application: Joint Pose-graph Optimization using iSAM2, Fast and Robust ICP relocalization
 - 
 ## Note
+- The offline dynamic removal module using segmented curved-voxel occupancy descriptor can be found in [repo](https://github.com/Yixin-F/DR-Using-SCV-OD)
 - The modified multi-session mapping module based on LT-Mapping (ICRA 2022) can be found in [repo](https://github.com/Yixin-F/LT-mapper_fyx)
 - The new version of online relocalization module name LiLoc (ICRA 2025 Submittion) can be found in [repo](https://github.com/Yixin-F/LiLoc)
 
