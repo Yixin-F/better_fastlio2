@@ -4,6 +4,10 @@
 - Front_end: FAST-LIO2 + Dynamic Removal + Yolo(Optional)
 - Back_end: Scan Context + GPS(Optional) + GTSAM
 - Application: Joint Pose-graph Optimization using iSAM2, Fast and Robust ICP relocalization
+- 
+## Note
+- The modified multi-session mapping module based on LT-Mapping (ICRA 2022) can be found in [repo](https://github.com/Yixin-F/LT-mapper_fyx)
+- The new version of online relocalization module name LiLoc (ICRA 2025 Submittion) can be found in [repo](https://github.com/Yixin-F/LiLoc)
 
 ## 1 Prerequisites
 
