@@ -532,7 +532,7 @@ How to improve it? Nothing, actually it's meaningless.
 - Multi-session: https://github.com/Yixin-F/LT-mapper_fyx
 
 ## citation 
-If you use any code in this project, please cite
+If you use any code in this project, please cite [paper](https://ieeexplore.ieee.org/abstract/document/10419066/)
 
 ```bibtex
 @article{fang2024segmented,
@@ -541,5 +541,14 @@ If you use any code in this project, please cite
   journal={IEEE Transactions on Geoscience and Remote Sensing},
   year={2024},
   publisher={IEEE}
+}
+```
+and our [paper](https://arxiv.org/abs/2409.10172)
+```bibtex
+@article{fang2024liloc,
+  title={LiLoc: Lifelong Localization using Adaptive Submap Joining and Egocentric Factor Graph},
+  author={Fang, Yixin and Li, Yanyan and Qian, Kun and Tombari, Federico and Wang, Yue and Lee, Gim Hee},
+  journal={arXiv preprint arXiv:2409.10172},
+  year={2024}
 }
 ```
