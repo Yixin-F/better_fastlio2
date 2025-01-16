@@ -54,7 +54,7 @@ cd /workspace/catkin_ws/src
 git clone https://github.com/Ian-YJX/better_fastlio2
 mv better_fastlio2 fast_lio_sam #the package name in the original code is fast_lio_sam
 cd ..
-catkin_make
+catkin_make #if you have met an error like "fatal error: fast_lio_sam/Pose6D.h: No such file or directory",just try again. This is due to the improper order of some lines in CMakeLists.txt
 ```
 
 One problem: if you want to use RViz or Gazebo, exit the container and enter again
