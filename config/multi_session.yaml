@@ -1,3 +1,5 @@
+#multi_session.yaml
+
 multi_session:
 
   sessions_dir: "/home/yixin-f/fast-lio2/src/parkinglot/" 
