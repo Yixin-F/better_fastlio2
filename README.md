@@ -32,13 +32,37 @@ catkin_make
 ### 3.2 Docker 
 
 ```shell
-sudo sh docker/bash.sh
-cd src
+docker pull jonathonyin/better-fast-lio2:0.1.0
+xhost +local:docker
+docker run -it \
+    --gpus all \
+    --privileged \
+    --env="NVIDIA_DRIVER_CAPABILITIES=all" \
+    --network host \
+    -e DISPLAY=$DISPLAY \
+    -e QT_X11_NO_MITSHM=1 \
+    -v ~/catkin_ws:/workspace/catkin_ws \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /dev/video0:/dev/video0 \
+    -v /dev/video1:/dev/video1 \
+    -v /dev/snd:/dev/snd \
+    --device=/dev/dri:/dev/dri \
+    --name="better-fast-lio2" \
+    jonathonyin/better-fast-lio2:0.1.0
+#Now you've entered the Docker container
+cd /workspace/catkin_ws/src
 git clone https://github.com/Ian-YJX/better_fastlio2
+mv better_fastlio2 fast_lio_sam #the package name in the original code is fast_lio_sam
 cd ..
 catkin_make
 ```
 
+One problem: if you want to use RViz or Gazebo, exit the container and enter again
+
+```shell
+docker start better-fast-lio2
+docker exec -it better-fast-lio2 /bin/bash
+```
 ## 4 How to Use
 ### 4.1 LIO Mapping using Livox, Velodyne, Ouster or Robosense
 
