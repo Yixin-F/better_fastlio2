@@ -2,8 +2,6 @@
 
 # 允许 Docker 访问 X11 显示
 xhost +local:docker
-docker start 0477b514f805
-docker exec -it 0477b514f805 /bin/bash
 
 # 运行 Docker 容器
 docker run -it \
