@@ -32,7 +32,7 @@ catkin_make
 ### 3.2 Docker 
 
 ```shell
-sudo sh docker/bash.sh (this file will be uploaded soon)
+sudo sh docker/bash.sh #(this file will be uploaded soon)
 git clone https://github.com/Yixin-F/better_fastlio2
 cd ..
 catkin_make
