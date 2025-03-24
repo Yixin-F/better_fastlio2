@@ -7,7 +7,7 @@
 ## Note
 - The offline dynamic removal module using segmented curved-voxel occupancy descriptor (T-GRS 2024) can be found in [repo](https://github.com/Yixin-F/DR-Using-SCV-OD)
 - The modified multi-session mapping module based on LT-Mapping (ICRA 2022) can be found in [repo](https://github.com/Yixin-F/LT-mapper_fyx)
-- The new version of online relocalization module name LiLoc (ICRA 2025 Submittion) can be found in [repo](https://github.com/Yixin-F/LiLoc)
+- The new version of online relocalization module name LiLoc (ICRA 2025) can be found in [repo](https://github.com/Yixin-F/LiLoc)
 - Some details of sensor platform and application can be found in [repo](https://github.com/Yixin-F/MD-LVIO)
 
 ## 1 Prerequisites
